@@ -1,4 +1,4 @@
-/*
+﻿/*
 * Initializers for Vulkan structures and objects used by the examples
 * Saves lot of VK_STRUCTURE_TYPE assignments
 * Some initializers are parameterized for convenience
@@ -13,7 +13,7 @@
 #include <vector>
 #include "vulkan/vulkan.h"
 
-namespace vks
+namespace VulkanEngine
 {
 	namespace initializers
 	{

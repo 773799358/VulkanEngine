@@ -1,5 +1,8 @@
 ﻿#include "SDL2/SDL_vulkan.h"
 #include "renderer.hpp"
+#include "macro.hpp"
+
+#include <iostream>
 
 namespace VulkanEngine
 {
@@ -16,6 +19,7 @@ namespace VulkanEngine
 	void Renderer::init()
 	{
 		initWindow();
+		createInstance();
 	}
 
 	void Renderer::run()
@@ -73,6 +77,29 @@ namespace VulkanEngine
 
 	void Renderer::onWindowResized(SDL_Window* window, int width, int height)
 	{
+	}
+
+	void Renderer::initVulkan()
+	{
+		createInstance();
+	}
+
+	void Renderer::createInstance()
+	{
+		// 查看扩展支持
+		{
+			uint32_t extensionCount = 0;
+			vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+			std::vector<VkExtensionProperties> extensions(extensionCount);
+			vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
+
+			LOG_INFO("available extensions:");
+
+			for (const auto& extension : extensions)
+			{
+				LOG_INFO("\t {}", extension.extensionName);
+			}
+		}
 	}
 
 	void Renderer::drawFrame()

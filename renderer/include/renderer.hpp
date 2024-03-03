@@ -20,6 +20,9 @@ namespace VulkanEngine
         void initWindow();
         void onWindowResized(SDL_Window* window, int width, int height);
 
+        void initVulkan();
+        void createInstance();
+
         void drawFrame();
 
         void clear();
