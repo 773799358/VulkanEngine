@@ -2,7 +2,7 @@
 #include "SDL2/SDL_vulkan.h"
 #include "renderer.hpp"
 #include "vulkanDebug.hpp"
-#include "vulkanDevice.hpp"
+#include "vulkanUtil.hpp"
 
 #include <iostream>
 #include <map>
@@ -99,6 +99,7 @@ namespace VulkanEngine
 		createSurface();
 		pickPhysicalDevice();
 		createLogicDevice();
+		createSwapChain();
 	}
 
 	bool Renderer::checkValidationLayerSupport()
@@ -245,42 +246,6 @@ namespace VulkanEngine
 		return score;
 	}
 
-	Renderer::QueueFamilyIndices Renderer::findQueueFamilies(VkPhysicalDevice device)
-	{
-		QueueFamilyIndices indices;
-
-		uint32_t queueFamilyCount = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-		for (int i = 0; i < queueFamilies.size(); i++)
-		{
-			// 找到一个支持graphics的queueFamily
-			auto queueFamily = queueFamilies[i];
-			if (queueFamily.queueCount > 0 && queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
-			{
-				indices.graphicsFamily = i;
-			}
-
-			// 再找一个支持present的queueFamily
-			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-			if (queueFamily.queueCount > 0 && presentSupport)
-			{
-				indices.presentFamily = i;
-			}
-
-			if (indices.isComplete())
-			{
-				break;
-			}
-		}
-
-		return indices;
-	}
-
 	bool Renderer::checkDeviceExtensionSupport(VkPhysicalDevice device)
 	{
 		uint32_t extensionCount;
@@ -297,7 +262,7 @@ namespace VulkanEngine
 		return requiredExtensions.empty();
 	}
 
-	Renderer::SwapChainSupportDetails Renderer::querySwapChainSupport(VkPhysicalDevice device)
+	SwapChainSupportDetails Renderer::querySwapChainSupport(VkPhysicalDevice device)
 	{
 		SwapChainSupportDetails details;
 		// 查询支持哪些功能
@@ -326,7 +291,7 @@ namespace VulkanEngine
 
 	bool Renderer::isDeviceSuitable(VkPhysicalDevice device)
 	{
-		QueueFamilyIndices indices = findQueueFamilies(device);
+		QueueFamilyIndices indices = findQueueFamilies(device, surface);
 
 		// 检查扩展支持
 		bool extensionsSupported = checkDeviceExtensionSupport(device);
@@ -349,7 +314,7 @@ namespace VulkanEngine
 
 	void Renderer::createLogicDevice()
 	{
-		vulkanDevice = new VulkanDevice(physicalDevice);
+		vulkanDevice.reset(new VulkanDevice(physicalDevice));
 
 		// 除了各向异性，暂时不需要扩展什么功能，默认值一切feature都为false
 		VkPhysicalDeviceFeatures enabledFeatures = {};
@@ -361,6 +326,15 @@ namespace VulkanEngine
 		{
 			LOG_ERROR("Could not create Vulkan device!");
 		}
+	}
+
+	void Renderer::createSwapChain()
+	{
+		vulkanSwapChain.reset(new VulkanSwapChain());
+
+		vulkanSwapChain->setSurface(surface);
+		vulkanSwapChain->connect(instance, physicalDevice, vulkanDevice->logicalDevice);
+		vulkanSwapChain->create(&width, &height);
 	}
 
 	void Renderer::pickPhysicalDevice()
@@ -405,8 +379,9 @@ namespace VulkanEngine
 
 	void Renderer::clear()
 	{
+		vulkanSwapChain.reset();
 		vkDestroySurfaceKHR(instance, surface, nullptr);
-		delete vulkanDevice;
+		vulkanDevice.reset();
 		vkDestroyInstance(instance, nullptr);
 
 		SDL_DestroyWindow(window);

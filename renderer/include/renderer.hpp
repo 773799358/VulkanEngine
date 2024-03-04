@@ -1,12 +1,14 @@
 ﻿#pragma once
 #include "SDL2/SDL.h"
 #include "vulkanInitializers.hpp"
+#include "vulkanDevice.hpp"
+#include "vulkanSwapChain.hpp"
 
 #include <string>
 
 namespace VulkanEngine
 {
-    struct VulkanDevice;
+    struct SwapChainSupportDetails;
     class Renderer
     {
     public:
@@ -20,23 +22,6 @@ namespace VulkanEngine
 
     private:
 
-        struct QueueFamilyIndices
-        {
-            int graphicsFamily = -1;
-            int presentFamily = -1;
-            bool isComplete()
-            {
-                return graphicsFamily >= 0 && presentFamily >= 0;
-            }
-        };
-
-        struct SwapChainSupportDetails
-        {
-            VkSurfaceCapabilitiesKHR capabilities;
-            std::vector<VkSurfaceFormatKHR> formats;
-            std::vector<VkPresentModeKHR> presentModes;
-        };
-
         void initWindow();
         void onWindowResized(SDL_Window* window, int width, int height);
 
@@ -49,12 +34,13 @@ namespace VulkanEngine
         void createSurface();
 
         void pickPhysicalDevice();
-        Renderer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-        Renderer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+        SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
         bool checkDeviceExtensionSupport(VkPhysicalDevice device);
         bool isDeviceSuitable(VkPhysicalDevice device);
 
         void createLogicDevice();
+
+        void createSwapChain();
 
         void drawFrame();
 
@@ -68,13 +54,14 @@ namespace VulkanEngine
 
         // window
         SDL_Window* window;
-        int width = 1024;
-        int height = 720;
+        uint32_t width = 1024;
+        uint32_t height = 720;
 
         VkSurfaceKHR surface;
         VkPhysicalDevice physicalDevice;
         
-        VulkanDevice* vulkanDevice = nullptr;
+        std::unique_ptr<VulkanDevice> vulkanDevice;
+        std::unique_ptr<VulkanSwapChain> vulkanSwapChain;
 
         // resources
         std::string basePath;
