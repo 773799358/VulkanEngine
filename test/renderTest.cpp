@@ -11,7 +11,7 @@
 #include <algorithm>
 #include <filesystem>
 
-#include "renderer.hpp"
+#include "app.hpp"
 
 // 这里注意，要跟SDL库中定义的main函数一致
 int main(int argc, char* argv[]) 
@@ -19,12 +19,14 @@ int main(int argc, char* argv[])
     std::string basePath = SDL_GetBasePath();
     basePath = std::filesystem::path(basePath).parent_path().string();
 
-    VulkanEngine::Renderer renderer(basePath);
+    std::string title = "Vulkan Engine";
+    VulkanEngine::App app(title, 1280, 720);
 
     try
     {
-        renderer.init();
-        renderer.run();
+        app.init();
+        app.loop();
+        app.quit();
     }
     catch (const std::exception& e)
     {

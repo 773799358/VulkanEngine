@@ -6,12 +6,6 @@
 #include <string>
 #include <iostream>
 
-#ifdef NDEBUG
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif // NDEBUG
-
 #define LOG_HELPER(LOG_LEVEL, ...) \
     globalLogger.log(LOG_LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
 
@@ -30,7 +24,7 @@ const bool enableValidationLayers = true;
 	VkResult res = (f);																					\
 	if (res != VK_SUCCESS)																				\
 	{																									\
-		std::cout << "Fatal : VkResult is \"" << errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
+		LOG_FATAL("Fatal : VkResult is {}", errorString(res));                                          \
 		assert(res == VK_SUCCESS);																		\
 	}																									\
 }

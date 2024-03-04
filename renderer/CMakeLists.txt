@@ -7,6 +7,7 @@ set(glm_DIR ${thirdParty_DIR}/glm)
 set(imgui_DIR ${thirdParty_DIR}/imgui)
 set(tinygltf_DIR ${thirdParty_DIR}/tinygltf)
 set(spdlog_DIR ${thirdParty_DIR}/spdlog)
+set(glfw_DIR ${thirdParty_DIR}/glfw)
 
 file(GLOB_RECURSE glm_files ${glm_DIR}/*.h*)
 source_group("glm" FILES ${glm_files})
@@ -33,6 +34,7 @@ add_library(Renderer STATIC
 )
 
 target_compile_definitions(Renderer PUBLIC SPDLOG_COMPILED_LIB)
+target_compile_definitions(Renderer PUBLIC _GLFW_WIN32)
 
 target_include_directories(Renderer PUBLIC ${CMAKE_CURRENT_LIST_DIR})  # 添加当前文件夹目录
 target_include_directories(Renderer PUBLIC ${Vulkan_INCLUDE_DIRS})
