@@ -255,6 +255,7 @@ namespace VulkanEngine
         {
             recreateSwapchain();
             passUpdateAfterRecreateSwapchain();
+            return;
         }
         else
         {
@@ -615,12 +616,7 @@ namespace VulkanEngine
         windowWidth = windowHandler->getWindowSize()[0];
         windowWidth = windowHandler->getWindowSize()[1];
 
-        // TODO:这样判断最小化安全么？
-        while (windowWidth == 0 || windowWidth == 0)
-        {
-            windowWidth = windowHandler->getWindowSize()[0];
-            windowWidth = windowHandler->getWindowSize()[1];
-        }
+        vkDeviceWaitIdle(device);
 
         VkResult resWaitForFences = vkWaitForFences(device, MAX_FRAMES_IN_FLIGHT, isFrameInFlightFences, VK_TRUE, UINT64_MAX);
         if (VK_SUCCESS != resWaitForFences)

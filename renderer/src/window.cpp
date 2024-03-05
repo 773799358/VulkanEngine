@@ -31,6 +31,9 @@ namespace VulkanEngine
 			SDL_Quit();
 			return;
 		}
+
+		this->width = width;
+		this->height = height;
 	}
 
 	SDL_Window* Window::getWindow()
@@ -50,6 +53,21 @@ namespace VulkanEngine
 		{
 			isShouldClose = true;
 		}
+
+		if (event.type == SDL_WINDOWEVENT)
+		{
+			if (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_RESTORED)
+			{
+				width = event.window.data1;
+				height = event.window.data2;
+			}
+			if (event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+			{
+				width = 0;
+				height = 0;
+			}
+		}
+
 		ImGui_ImplSDL2_ProcessEvent(&event);
 	}
 

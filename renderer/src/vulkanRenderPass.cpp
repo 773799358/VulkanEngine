@@ -36,10 +36,33 @@ namespace VulkanEngine
 		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 	}
 
+	void TestRenderPass::recreate()
+	{
+		for (const auto& frameBuffer : swapChainFrameBuffers)
+		{
+			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);
+		}
+
+		for (uint32_t i = 0; i < renderPipelines.size(); i++)
+		{
+			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
+			vkDestroyPipelineLayout(vulkanRender->device, renderPipelines[i].layout, nullptr);
+		}
+
+		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
+
+		setupAttachments();
+		setupRenderPass();
+		setupDescriptorSetLayout();
+		setupPipelines();
+		setupDescriptorSet();
+		setupFramebufferDescriptorSet();
+		setupSwapChainFrameBuffers();
+	}
+
 	void TestRenderPass::clear()
 	{
 		vkQueueWaitIdle(vulkanRender->graphicsQueue);
-		vkQueueWaitIdle(vulkanRender->presentQueue);
 		for (const auto& frameBuffer : swapChainFrameBuffers)
 		{
 			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);

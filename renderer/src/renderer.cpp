@@ -4,6 +4,7 @@
 #include <iostream>
 #include <map>
 #include <set>
+#include <functional>
 
 namespace VulkanEngine
 {
@@ -28,14 +29,12 @@ namespace VulkanEngine
         UIRenderPass->init(vulkanRenderer, testRenderPass);
     }
 
-    void recreateSwapChain()
-    {
-
-    }
-
     void Renderer::drawFrame()
     {
-        vulkanRenderer->beginPresent(&recreateSwapChain);
+        if (vulkanRenderer->beginPresent(std::bind(&TestRenderPass::recreate, testRenderPass)))
+        {
+            return;
+        }
 
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -57,7 +56,7 @@ namespace VulkanEngine
 
         vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
 
-        vulkanRenderer->endPresent(&recreateSwapChain);
+        vulkanRenderer->endPresent(std::bind(&TestRenderPass::recreate, testRenderPass));
     }
 
     void Renderer::quit()

@@ -74,6 +74,7 @@ namespace VulkanEngine
 		void postInit() override;
 
 		void draw(VkCommandBuffer commandBuffer) override;
+		void recreate();
 		void clear() override;
 
 	private:
