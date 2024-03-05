@@ -41,6 +41,7 @@ target_include_directories(Renderer PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_include_directories(Renderer PUBLIC ${CMAKE_CURRENT_LIST_DIR}/include)
 target_include_directories(Renderer PUBLIC ${thirdParty_DIR})
 target_include_directories(Renderer PUBLIC ${spdlog_DIR}/include)
+target_include_directories(Renderer PUBLIC ${Vulkan_INCLUDE_DIRS}/SDL2)
 
 target_link_libraries(Renderer PUBLIC ${Vulkan_LIBRARIES})
 target_compile_features(Renderer PUBLIC cxx_std_17)

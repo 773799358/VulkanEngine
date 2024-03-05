@@ -16,8 +16,11 @@ namespace VulkanEngine
         void drawFrame();
         void quit();
     private:
-        VulkanRenderer* vulkanRenderer = nullptr;
-        TestRenderPass* testRenderPass = nullptr;
+
         std::string basePath;
+        VulkanRenderer* vulkanRenderer = nullptr;
+
+        UIPass* UIRenderPass = nullptr;
+        TestRenderPass* testRenderPass = nullptr;
     };
 }

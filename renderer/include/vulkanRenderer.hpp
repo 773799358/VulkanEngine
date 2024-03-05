@@ -32,6 +32,7 @@ namespace VulkanEngine
         void endPresent(std::function<void()> passUpdateAfterRecreateSwapchain);
 
         // command
+        VkCommandBuffer getCurrentCommandBuffer();
         void cmdBeginRenderPass(VkCommandBuffer commandBuffer, VkRenderPassBeginInfo randerPassBegin, VkSubpassContents contents);
         void cmdEndRenderPass(VkCommandBuffer commandBuffer);
         void cmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline);

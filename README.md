@@ -23,3 +23,4 @@
 ## 2024.3.5
 
 1. 学习piccolo的vulkan rhi封装
+2. 创建了第一个TestRenderPass triangle 还有很多接口没有封装，慢慢来吧

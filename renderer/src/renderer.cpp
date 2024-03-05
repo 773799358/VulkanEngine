@@ -23,6 +23,9 @@ namespace VulkanEngine
 
         testRenderPass = new TestRenderPass();
         testRenderPass->init(vulkanRenderer);
+
+        UIRenderPass = new UIPass();
+        UIRenderPass->init(vulkanRenderer, testRenderPass);
     }
 
     void recreateSwapChain()
@@ -44,11 +47,13 @@ namespace VulkanEngine
         renderPassInfo.clearValueCount = 1;
         renderPassInfo.pClearValues = &clearColor;
 
-        VkCommandBuffer currentCommandBuffer = vulkanRenderer->commandBuffers[vulkanRenderer->currentFrameIndex];
+        VkCommandBuffer currentCommandBuffer = vulkanRenderer->getCurrentCommandBuffer();
         vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, testRenderPass->renderPipelines[0].pipeline);
+
         testRenderPass->draw(currentCommandBuffer);
+        UIRenderPass->draw(currentCommandBuffer);
 
         vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
 
@@ -58,6 +63,7 @@ namespace VulkanEngine
     void Renderer::quit()
     {
         testRenderPass->clear();
+        UIRenderPass->clear();
         delete vulkanRenderer;
     }
 

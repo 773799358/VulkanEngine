@@ -511,7 +511,7 @@ namespace VulkanEngine
         poolInfo.pPoolSizes = poolSizes;
         poolInfo.maxSets =
             1 + 1 + 1 + maxMaterialCount + maxVertexBlendingMeshCount + 1 + 1; // +skybox + axis descriptor set
-        poolInfo.flags = 0U;
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
         VK_CHECK_RESULT(vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool));
     }
@@ -742,7 +742,7 @@ namespace VulkanEngine
     VKAPI_ATTR VkBool32 VKAPI_CALL VulkanRenderer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
         // 输出到控制台
-        std::cerr << "validation layer: " << "\n" << "\t" << pCallbackData->pMessage << std::endl;
+        LOG_DEBUG("validation layer: \n \t {}", pCallbackData->pMessage);
 
         return VK_FALSE;
     }
@@ -964,6 +964,11 @@ namespace VulkanEngine
 
             return actualExtent;
         }
+    }
+
+    VkCommandBuffer VulkanRenderer::getCurrentCommandBuffer()
+    {
+        return commandBuffers[currentFrameIndex];
     }
 
     void VulkanRenderer::cmdBeginRenderPass(VkCommandBuffer commandBuffer, VkRenderPassBeginInfo randerPassBegin, VkSubpassContents contents)
