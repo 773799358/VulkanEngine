@@ -1,5 +1,6 @@
 ﻿#include "window.hpp"
 #include "macro.hpp"
+#include "imgui/imgui_impl_sdl2.h"
 
 namespace VulkanEngine
 {
@@ -49,6 +50,7 @@ namespace VulkanEngine
 		{
 			isShouldClose = true;
 		}
+		ImGui_ImplSDL2_ProcessEvent(&event);
 	}
 
 	bool Window::shouldClose()

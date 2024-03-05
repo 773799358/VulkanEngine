@@ -353,10 +353,9 @@ namespace VulkanEngine
 		initInfo.QueueFamily = vulkanRender->queueIndices.graphicsFamily.value();
 		initInfo.Queue = vulkanRender->graphicsQueue;
 		initInfo.DescriptorPool = vulkanRender->descriptorPool;
-		//init_info.Subpass = _main_camera_subpass_ui;
 
-		initInfo.MinImageCount = 3;
-		initInfo.ImageCount = 3;
+		initInfo.MinImageCount = vulkanRender->MAX_FRAMES_IN_FLIGHT;
+		initInfo.ImageCount = vulkanRender->MAX_FRAMES_IN_FLIGHT;
 
 		initInfo.RenderPass = mainPass->renderPass;
 		ImGui_ImplVulkan_Init(&initInfo);
