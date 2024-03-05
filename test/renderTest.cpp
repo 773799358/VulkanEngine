@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
 
     std::string title = "Vulkan Engine";
     VulkanEngine::App app(title, 1280, 720);
+    app.setBasePath(basePath);
 
     try
     {

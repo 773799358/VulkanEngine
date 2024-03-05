@@ -51,6 +51,8 @@ namespace VulkanEngine
 
     VulkanRenderer::~VulkanRenderer()
     {
+        vkDeviceWaitIdle(device);
+
         clearSwapChain();
 
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -80,8 +82,10 @@ namespace VulkanEngine
         vkDestroyInstance(instance, nullptr);
     }
 
-    void VulkanRenderer::init(Window* window)
+    void VulkanRenderer::init(Window* window, const std::string& basePath)
     {
+        this->basePath = basePath + "/";
+
         windowHandler = window;
         this->window = window->getWindow();
 
@@ -120,6 +124,148 @@ namespace VulkanEngine
         createSwapchainImageViews();
 
         createFramebufferImageAndView();
+    }
+
+    bool VulkanRenderer::beginPresent(std::function<void()> passUpdateAfterRecreateSwapchain)
+    {
+        // 等待上次commandBuffer执行完毕，否则会出现命令堆积
+        vkWaitForFences(device, 1, &isFrameInFlightFences[currentFrameIndex], VK_TRUE, UINT64_MAX);
+        
+        // 重置commandPool，进行重新录制
+        VK_CHECK_RESULT(vkResetCommandPool(device, commandPools[currentFrameIndex], 0));
+
+        // 第三个参数指定获取有效图像的操作timeout，单位纳秒。我们使用64位无符号最大值禁止timeout。
+        VkResult acquireNextImageResult = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableForRenderSemaphores[currentFrameIndex], VK_NULL_HANDLE, &currentSwapChainImageIndex);
+
+        if (VK_ERROR_OUT_OF_DATE_KHR == acquireNextImageResult)
+        {
+            // 交换链与surface不一致
+            recreateSwapchain();
+            passUpdateAfterRecreateSwapchain();
+            return true;
+        }
+        else if (VK_SUBOPTIMAL_KHR == acquireNextImageResult)
+        {
+            // VK_SUBOPTIMAL_KHR 交换链可以使用，但是surface属性不匹配
+            recreateSwapchain();
+            passUpdateAfterRecreateSwapchain();
+
+            // 执行一个空提交，来重置semaphore的状态
+            VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT };   // 等待上个pass执行结束
+            VkSubmitInfo submitInfo = {};
+            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            submitInfo.waitSemaphoreCount = 1;
+            submitInfo.pWaitSemaphores = &imageAvailableForRenderSemaphores[currentFrameIndex];
+            submitInfo.pWaitDstStageMask = waitStages;
+            submitInfo.commandBufferCount = 0;
+            submitInfo.pCommandBuffers = nullptr;
+            submitInfo.signalSemaphoreCount = 0;
+            submitInfo.pSignalSemaphores = nullptr;
+
+            VkResult resetFences = vkResetFences(device, 1, &isFrameInFlightFences[currentFrameIndex]);
+            if (VK_SUCCESS != resetFences)
+            {
+                LOG_ERROR("failed to reset fence!");
+                return false;
+            }
+
+            VkResult queueSubmit = vkQueueSubmit(graphicsQueue, 1, &submitInfo, isFrameInFlightFences[currentFrameIndex]);
+            if (VK_SUCCESS != queueSubmit)
+            {
+                LOG_ERROR("failed to queue submit!");
+                return false;
+            }
+            currentFrameIndex = (currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+            return true;
+        }
+        else
+        {
+            if (VK_SUCCESS != acquireNextImageResult)
+            {
+                LOG_ERROR("failed to acquire next image!");
+                return false;
+            }
+        }
+
+        // TODO:这里每次都重新录制，对于未修改的情况是否可以优化？
+        // 开始录制
+        VkCommandBufferBeginInfo commandBufferBeginInfo = {};
+        commandBufferBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+        // VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT: 命令缓冲将在执行一次后立即重新记录。
+        // VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT: 这是一个辅助缓冲，它限制在在一个渲染通道中。
+        // VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT : 命令缓冲也可以重新提交，同时它也在等待执行。
+        commandBufferBeginInfo.flags = 0;
+        commandBufferBeginInfo.pInheritanceInfo = nullptr;
+
+        VkResult beginCommandBuffer = vkBeginCommandBuffer(commandBuffers[currentFrameIndex], &commandBufferBeginInfo);
+
+        if (VK_SUCCESS != beginCommandBuffer)
+        {
+            LOG_ERROR("failed to begin command buffer!");
+            return false;
+        }
+        return false;
+    }
+
+    void VulkanRenderer::endPresent(std::function<void()> passUpdateAfterRecreateSwapchain)
+    {
+        // 结束录制
+        VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrameIndex]));
+        
+        std::array<VkSemaphore, 1> signalSemaphores = {
+            //imageAvailableForTextureCopySemaphores[currentFrameIndex],
+            imageFinishedForPresentSemaphores[currentFrameIndex]
+        };
+
+        // 表示执行到 WaitDstStageMask 要停下，等待 WaitSemaphores 状态为 signaled，执行完毕后 SignalSemaphores 的状态会变为 signaled
+        VkSemaphore waitSemaphores[] = { imageAvailableForRenderSemaphores[currentFrameIndex] };
+
+        // 之前的pass到了输出图像到附件的阶段进行等待swapChain准备好image
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.waitSemaphoreCount = 1;
+        submitInfo.pWaitSemaphores = waitSemaphores;
+        submitInfo.pWaitDstStageMask = waitStages;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffers[currentFrameIndex];
+        submitInfo.signalSemaphoreCount = signalSemaphores.size();
+        submitInfo.pSignalSemaphores = signalSemaphores.data();
+
+        VK_CHECK_RESULT(vkResetFences(device, 1, &isFrameInFlightFences[currentFrameIndex]));	// 将fence重置为 unsignaled
+
+        // 可以一次性做大量提交
+        VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, isFrameInFlightFences[currentFrameIndex]));
+
+        VkPresentInfoKHR presentInfo = {};
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = &imageFinishedForPresentSemaphores[currentFrameIndex];
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = &swapChain;
+        presentInfo.pImageIndices = &currentSwapChainImageIndex;
+        presentInfo.pResults = nullptr;
+
+        VkResult presentResult = vkQueuePresentKHR(presentQueue, &presentInfo);
+
+        // 有可能是因为swapChain和surface window不匹配了
+        if (VK_ERROR_OUT_OF_DATE_KHR == presentResult || VK_SUBOPTIMAL_KHR == presentResult)
+        {
+            recreateSwapchain();
+            passUpdateAfterRecreateSwapchain();
+        }
+        else
+        {
+            if (VK_SUCCESS != presentResult)
+            {
+                LOG_ERROR("failed to present!");
+                return;
+            }
+        }
+
+        currentFrameIndex = (currentFrameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
     void VulkanRenderer::createInstance()
@@ -452,6 +598,10 @@ namespace VulkanEngine
 
     void VulkanRenderer::clearSwapChain()
     {
+        vkDestroyImage(device, depthImage, nullptr);
+        vkDestroyImageView(device, depthImageView, nullptr);
+        vkFreeMemory(device, depthImageMemory, nullptr);
+
         for (size_t i = 0; i < swapChainImageViews.size(); i++)
         {
             vkDestroyImageView(device, swapChainImageViews[i], nullptr);
@@ -500,8 +650,7 @@ namespace VulkanEngine
 
         for (size_t i = 0; i < swapChainImages.size(); i++)
         {
-            swapChainImageViews[i] = vulkanResource::createImageView(
-                device, 
+            swapChainImageViews[i] = createImageView(
                 swapChainImages[i], 
                 swapChainImageFormat, 
                 VK_IMAGE_ASPECT_COLOR_BIT, 
@@ -513,9 +662,7 @@ namespace VulkanEngine
 
     void VulkanRenderer::createFramebufferImageAndView()
     {
-        vulkanResource::createImage(
-            physicalDevice,
-            device,
+        createImage(
             swapChainExtent.width,
             swapChainExtent.height,
             depthImageFormat,
@@ -528,8 +675,7 @@ namespace VulkanEngine
             1,
             1);
 
-        depthImageView = vulkanResource::createImageView(
-            device,
+        depthImageView = createImageView(
             depthImage,
             depthImageFormat,
             VK_IMAGE_ASPECT_DEPTH_BIT,
@@ -818,5 +964,111 @@ namespace VulkanEngine
 
             return actualExtent;
         }
+    }
+
+    void VulkanRenderer::cmdBeginRenderPass(VkCommandBuffer commandBuffer, VkRenderPassBeginInfo randerPassBegin, VkSubpassContents contents)
+    {
+        vkCmdBeginRenderPass(commandBuffer, &randerPassBegin, contents);
+    }
+
+    void VulkanRenderer::cmdEndRenderPass(VkCommandBuffer commandBuffer)
+    {
+        vkCmdEndRenderPass(commandBuffer);
+    }
+
+    void VulkanRenderer::cmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
+    {
+        vkCmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
+    }
+
+    VkShaderModule VulkanRenderer::createShaderModule(const std::vector<char>& code)
+    {
+        VkShaderModuleCreateInfo createInfo = {};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+
+        // 需要满足uint32_t的对齐要求
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+        VkShaderModule shaderModule;
+        VK_CHECK_RESULT(vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule));
+
+        return shaderModule;
+    }
+
+    uint32_t VulkanRenderer::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+    {
+        VkPhysicalDeviceMemoryProperties memProperties;
+        vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);		// 查询可用的内存类型
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        {
+            if (typeFilter & (1 << i))	// 把1左移i位就是类型
+            {
+                if ((memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+                {
+                    return i;
+                }
+            }
+        }
+
+        LOG_ERROR("failed to find suitable memory type!");
+        return 0;
+    }
+
+    void VulkanRenderer::createImage(uint32_t imageWidth, uint32_t imageHeight, VkFormat format, VkImageTiling imageTiling, VkImageUsageFlags imageUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkImage& image, VkDeviceMemory& memory, VkImageCreateFlags imageCreateFlags, uint32_t arrayLayers, uint32_t miplevels)
+    {
+        VkImageCreateInfo imageCI{};
+        imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageCI.flags = imageCreateFlags;
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.extent.width = imageWidth;
+        imageCI.extent.height = imageHeight;
+        imageCI.extent.depth = 1;
+        imageCI.mipLevels = miplevels;
+        imageCI.arrayLayers = arrayLayers;
+        imageCI.format = format;								// UNORM 格式表示无符号的归一化格式，其中值从0到255（对于8位）被解释为从0.0到1.0的浮点数
+        imageCI.tiling = imageTiling;							// VK_IMAGE_TILING_LINEAR: 纹素基于行主序的布局，如pixels数组
+                                                                // VK_IMAGE_TILING_OPTIMAL: 纹素基于具体的实现来定义布局，以实现最佳访问
+        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;		// VK_IMAGE_LAYOUT_UNDEFINED: GPU不能使用，第一个变换将丢弃纹素。
+        imageCI.usage = imageUsageFlags;
+        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &image));
+
+        VkMemoryRequirements memRequirements;
+        vkGetImageMemoryRequirements(device, image, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memRequirements.memoryTypeBits, memoryPropertyFlags);
+
+        if (vkAllocateMemory(device, &allocInfo, nullptr, &memory) != VK_SUCCESS)
+        {
+            LOG_ERROR("failed to allocate image memory!");
+            return;
+        }
+
+        vkBindImageMemory(device, image, memory, 0);
+    }
+
+    VkImageView VulkanRenderer::createImageView(VkImage& image, VkFormat format, VkImageAspectFlags imageAspectFlags, VkImageViewType viewType, uint32_t layoutCount, uint32_t miplevels)
+    {
+        VkImageViewCreateInfo imageViewCI = {};
+        imageViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCI.image = image;
+        imageViewCI.viewType = viewType;
+        imageViewCI.format = format;
+        imageViewCI.subresourceRange.aspectMask = imageAspectFlags;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = miplevels;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = layoutCount;
+
+        VkImageView imageView;
+        VK_CHECK_RESULT(vkCreateImageView(device, &imageViewCI, nullptr, &imageView));
+
+        return imageView;
     }
 }

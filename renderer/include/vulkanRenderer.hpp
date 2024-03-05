@@ -3,6 +3,7 @@
 #include "vulkan/vulkan.h"
 #include "vulkanStruct.hpp"
 #include <array>
+#include <functional>
 
 namespace VulkanEngine
 {
@@ -23,9 +24,45 @@ namespace VulkanEngine
         VulkanRenderer() = default;
         ~VulkanRenderer();
 
-        void init(Window* window);
+        void init(Window* window, const std::string& basePath);
 
-    private:
+        // 如果recreateSwapChain，需要对与此大小相关的资源进行重新创建
+        // 返回值代表是否重建了交换链
+        bool beginPresent(std::function<void()> passUpdateAfterRecreateSwapchain);
+        void endPresent(std::function<void()> passUpdateAfterRecreateSwapchain);
+
+        // command
+        void cmdBeginRenderPass(VkCommandBuffer commandBuffer, VkRenderPassBeginInfo randerPassBegin, VkSubpassContents contents);
+        void cmdEndRenderPass(VkCommandBuffer commandBuffer);
+        void cmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline);
+
+        // resource
+        VkShaderModule createShaderModule(const std::vector<char>& code);
+        uint32_t findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+        void createImage(
+            uint32_t imageWidth,
+            uint32_t imageHeight,
+            VkFormat format,
+            VkImageTiling imageTiling,
+            VkImageUsageFlags imageUsageFlags,
+            VkMemoryPropertyFlags memoryPropertyFlags,
+            VkImage& image,
+            VkDeviceMemory& memory,
+            VkImageCreateFlags imageCreateFlags,
+            uint32_t arrayLayers,
+            uint32_t miplevels);
+
+        VkImageView createImageView(
+            VkImage& image,
+            VkFormat format,
+            VkImageAspectFlags imageAspectFlags,
+            VkImageViewType viewType,
+            uint32_t layoutCount,
+            uint32_t miplevels);
+
+    public:
+        std::string basePath = "";
         Window* windowHandler = nullptr;
         SDL_Window* window = nullptr;
         uint32_t windowWidth = 0;
@@ -79,7 +116,7 @@ namespace VulkanEngine
         void createSwapchainImageViews();
         void createFramebufferImageAndView();
 
-    private:
+    public:
         uint32_t vulkanAPIVersion = VK_API_VERSION_1_0;
 
         // queue
@@ -95,7 +132,6 @@ namespace VulkanEngine
         VkFormat swapChainImageFormat;
         std::vector<VkImage> swapChainImages;
         std::vector<VkImageView> swapChainImageViews;
-        std::vector<VkFramebuffer> swapChainFramebuffers;
         VkExtent2D swapChainExtent;
 
         // depth
@@ -105,7 +141,7 @@ namespace VulkanEngine
         VkDeviceMemory depthImageMemory;
 
         // command
-        // TODO:不知道多个pool会不会对性能产生什么影响
+        // TODO:不知道多个pool会对性能产生多少影响，官方推荐pool进行reset更好（而不是单独reset某个commandBuffer）
         VkCommandPool mainCommandPool;          // 默认图形command pool
         std::array<VkCommandPool, MAX_FRAMES_IN_FLIGHT> commandPools; // inflight command pool
         std::array<VkCommandBuffer, MAX_FRAMES_IN_FLIGHT> commandBuffers;

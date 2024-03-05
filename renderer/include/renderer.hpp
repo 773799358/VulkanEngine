@@ -2,6 +2,7 @@
 #include <string>
 #include "window.hpp"
 #include "vulkanRenderer.hpp"
+#include "vulkanRenderPass.hpp"
 
 namespace VulkanEngine
 {
@@ -16,6 +17,7 @@ namespace VulkanEngine
         void quit();
     private:
         VulkanRenderer* vulkanRenderer = nullptr;
+        TestRenderPass* testRenderPass = nullptr;
         std::string basePath;
     };
 }
