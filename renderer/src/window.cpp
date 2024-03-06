@@ -56,15 +56,22 @@ namespace VulkanEngine
 
 		if (event.type == SDL_WINDOWEVENT)
 		{
-			if (event.window.event == SDL_WINDOWEVENT_RESIZED || event.window.event == SDL_WINDOWEVENT_RESTORED)
+			if (event.window.event == SDL_WINDOWEVENT_RESIZED)
 			{
 				width = event.window.data1;
 				height = event.window.data2;
 			}
-			if (event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+			else if (event.window.event == SDL_WINDOWEVENT_RESTORED)
 			{
-				width = 0;
-				height = 0;
+				// 这里获取到窗口大小其实为0，但是无所谓，因为重建交换链会获取到真正的窗口大小
+				width = event.window.data1;
+				height = event.window.data2;
+			}
+			else if (event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+			{
+				// -1 让渲染暂停
+				width = -1;
+				height = -1;
 			}
 		}
 

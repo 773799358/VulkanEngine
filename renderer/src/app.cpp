@@ -30,7 +30,7 @@ namespace VulkanEngine
 	{
 		while (!window.shouldClose())
 		{
-			if (window.getWindowSize()[0] != 0 && window.getWindowSize()[1] != 0)
+			if (window.getWindowSize()[0] != -1 && window.getWindowSize()[1] != -1)
 			{
 				renderer.drawFrame();
 			}

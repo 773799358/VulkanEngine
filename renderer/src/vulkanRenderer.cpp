@@ -625,6 +625,8 @@ namespace VulkanEngine
             return;
         }
 
+        currentFrameIndex = 0;
+
         vkDestroyImageView(device, depthImageView, nullptr);
         vkDestroyImage(device, depthImage, nullptr);
         vkFreeMemory(device, depthImageMemory, nullptr);
