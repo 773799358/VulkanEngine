@@ -22,13 +22,10 @@ namespace VulkanEngine
 		void setupRenderPass();
 		void setupDescriptorSetLayout();
 		void setupPipelines();
-		void setupDescriptorSet();
-		void setupFramebufferDescriptorSet();
-		void setupSwapChainFrameBuffers();
+		void setupFrameBuffers();
 
 		// TODO:private
 	public:
-		std::vector<VkFramebuffer> swapChainFrameBuffers;
 		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 	};
 }

@@ -39,12 +39,14 @@ namespace VulkanEngine
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = mainRenderPass->renderPass;
-        renderPassInfo.framebuffer = mainRenderPass->swapChainFrameBuffers[vulkanRenderer->currentFrameIndex];
+        renderPassInfo.framebuffer = mainRenderPass->frameBuffers[vulkanRenderer->currentFrameIndex].frameBuffer;
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = vulkanRenderer->swapChainExtent;
-        VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-        renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        VkClearValue clearColors[2];
+        clearColors[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+        clearColors[1].depthStencil = { 1.0f, 0 };
+        renderPassInfo.clearValueCount = sizeof(clearColors) / sizeof(clearColors[0]);
+        renderPassInfo.pClearValues = clearColors;
 
         VkCommandBuffer currentCommandBuffer = vulkanRenderer->getCurrentCommandBuffer();
         vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

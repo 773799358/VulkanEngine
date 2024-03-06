@@ -24,3 +24,8 @@
 
 1. 学习piccolo的vulkan rhi封装
 2. 创建了第一个TestRenderPass triangle 还有很多接口没有封装，慢慢来吧
+
+## 2024.3.6
+
+1. 解决了窗口一些事件处理的bug
+2. 拆分了两个pass，mainPass和UIPass，后续会将UIPass作为subpass进行绘制

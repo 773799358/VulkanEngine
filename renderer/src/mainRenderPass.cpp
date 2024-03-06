@@ -11,9 +11,7 @@ namespace VulkanEngine
 		setupRenderPass();
 		setupDescriptorSetLayout();
 		setupPipelines();
-		setupDescriptorSet();
-		setupFramebufferDescriptorSet();
-		setupSwapChainFrameBuffers();
+		setupFrameBuffers();
 	}
 
 	void MainRenderPass::postInit()
@@ -27,9 +25,9 @@ namespace VulkanEngine
 
 	void MainRenderPass::recreate()
 	{
-		for (const auto& frameBuffer : swapChainFrameBuffers)
+		for (const auto& frameBuffer : frameBuffers)
 		{
-			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);
+			vkDestroyFramebuffer(vulkanRender->device, frameBuffer.frameBuffer, nullptr);
 		}
 
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
@@ -44,17 +42,15 @@ namespace VulkanEngine
 		setupRenderPass();
 		setupDescriptorSetLayout();
 		setupPipelines();
-		setupDescriptorSet();
-		setupFramebufferDescriptorSet();
-		setupSwapChainFrameBuffers();
+		setupFrameBuffers();
 	}
 
 	void MainRenderPass::clear()
 	{
 		vkQueueWaitIdle(vulkanRender->graphicsQueue);
-		for (const auto& frameBuffer : swapChainFrameBuffers)
+		for (const auto& frameBuffer : frameBuffers)
 		{
-			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);
+			vkDestroyFramebuffer(vulkanRender->device, frameBuffer.frameBuffer, nullptr);
 		}
 
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
@@ -76,42 +72,60 @@ namespace VulkanEngine
 		VkAttachmentDescription colorAttachment = {};
 		colorAttachment.format = vulkanRender->swapChainImageFormat;
 		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;	// 不做多重采样
-		// color and depth 渲染前清屏，渲染后保留内容
+		// color 渲染前清屏，渲染后保留内容
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		// stencil
+		
 		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;		// render pass 完成后请将 layout 转至 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR 再输出
 
-		// subpass
 		VkAttachmentReference colorAttachmentRef = {};
 		colorAttachmentRef.attachment = 0;		// 指向第一个VkAttachmentDescription
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;	// 新提交的渲染任务需要将 layout 从 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR 转为 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL 再用于绘制。
 
+		VkAttachmentDescription depthAttachment = {};
+		depthAttachment.format = vulkanRender->depthImageFormat;
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		// depth 渲染前清屏，渲染后保留（除非后面不使用depth了，保守一些）
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		VkAttachmentReference depthAttachmentRef = {};
+		depthAttachmentRef.attachment = 1;
+		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		// subpass
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
+		subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
-		VkRenderPassCreateInfo renderPassInfo = {};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		renderPassInfo.attachmentCount = 1;
-		renderPassInfo.pAttachments = &colorAttachment;
-		renderPassInfo.subpassCount = 1;
-		renderPassInfo.pSubpasses = &subpass;
+		VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
 
 		// 配置依赖
 		VkSubpassDependency dependency = {};
 		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 		dependency.dstSubpass = 0;
 		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		dependency.srcAccessMask = 0;
 		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
 		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency.dependencyFlags = 0;
 
+		VkRenderPassCreateInfo renderPassInfo = {};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassInfo.attachmentCount = sizeof(attachments) / sizeof(attachments[0]);
+		renderPassInfo.pAttachments = attachments;
+		renderPassInfo.subpassCount = 1;
+		renderPassInfo.pSubpasses = &subpass;
 		renderPassInfo.dependencyCount = 1;
 		renderPassInfo.pDependencies = &dependency;
 
@@ -124,11 +138,13 @@ namespace VulkanEngine
 
 	void MainRenderPass::setupPipelines()
 	{
+		renderPipelines.resize(1);
+
 		// 配置一次subpass的状态，DX内对应PipelineStateObject
 		std::string shaderDir = vulkanRender->basePath + "spvs/";
+
 		std::string vert = shaderDir + "vert.spv";
 		auto vertShaderCode = vulkanUtil::readFile(vert);
-
 		std::string frag = shaderDir + "frag.spv";
 		auto fragShaderCode = vulkanUtil::readFile(frag);
 
@@ -140,7 +156,6 @@ namespace VulkanEngine
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-
 		vertShaderStageInfo.module = vertShaderModule;
 		vertShaderStageInfo.pName = "main";				// 入口函数
 
@@ -171,24 +186,13 @@ namespace VulkanEngine
 		inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 		// 3.视窗和裁剪
-		VkViewport viewport = {};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = (float)vulkanRender->swapChainExtent.width;
-		viewport.height = (float)vulkanRender->swapChainExtent.height;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-
-		VkRect2D scissor = {};	// 裁剪外的区域会被丢弃，其实就是个过滤器
-		scissor.offset = { 0, 0 };
-		scissor.extent = vulkanRender->swapChainExtent;
 
 		VkPipelineViewportStateCreateInfo viewportStateInfo = {};
 		viewportStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		viewportStateInfo.viewportCount = 1;
-		viewportStateInfo.pViewports = &viewport;
+		viewportStateInfo.pViewports = &vulkanRender->viewport;
 		viewportStateInfo.scissorCount = 1;
-		viewportStateInfo.pScissors = &scissor;
+		viewportStateInfo.pScissors = &vulkanRender->scissor;
 
 		// 4.光栅化状态
 		VkPipelineRasterizationStateCreateInfo rasterizationStateInfo = {};
@@ -217,37 +221,20 @@ namespace VulkanEngine
 		multisamplingInfo.alphaToOneEnable = VK_FALSE;
 
 		// 6.深度和模板测试
-		// 暂时不用
+		VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
+		depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilCreateInfo.depthTestEnable = VK_TRUE;
+		depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
+		depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS; 
+		depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
+		depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
 
 		// 7.color blend
-		/*
-			if (blendEnable) {
-				finalColor.rgb = (srcColorBlendFactor * newColor.rgb) <colorBlendOp> (dstColorBlendFactor * oldColor.rgb);
-				finalColor.a = (srcAlphaBlendFactor * newColor.a) <alphaBlendOp> (dstAlphaBlendFactor * oldColor.a);
-			} else {
-				finalColor = newColor;
-			}
-
-			finalColor = finalColor & colorWriteMask;
-		*/
-
-		// 大多数情况的混合：
-		// finalColor.rgb = newAlpha * newColor + (1 - newAlpha) * oldColor;
-		// finalColor.a = newAlpha.a;
-		// 
-		// colorBlendAttachment.blendEnable = VK_TRUE;
-		// colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		// colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		// colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		// colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		// colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		// colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;	// 不开启混合直接覆盖
-		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+		colorBlendAttachment.blendEnable = VK_FALSE;	// 不开启会混合直接覆盖
+		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
 		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
 		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
@@ -269,7 +256,7 @@ namespace VulkanEngine
 		VkDynamicState dynamicStates[] =
 		{
 			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_LINE_WIDTH
+			VK_DYNAMIC_STATE_SCISSOR
 		};
 
 		VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
@@ -285,8 +272,6 @@ namespace VulkanEngine
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-		renderPipelines.resize(1);
-
 		VK_CHECK_RESULT(vkCreatePipelineLayout(vulkanRender->device, &pipelineLayoutInfo, nullptr, &renderPipelines[0].layout));
 
 		VkGraphicsPipelineCreateInfo pipelineInfo = {};
@@ -298,7 +283,7 @@ namespace VulkanEngine
 		pipelineInfo.pViewportState = &viewportStateInfo;
 		pipelineInfo.pRasterizationState = &rasterizationStateInfo;
 		pipelineInfo.pMultisampleState = &multisamplingInfo;
-		pipelineInfo.pDepthStencilState = nullptr;
+		pipelineInfo.pDepthStencilState = &depthStencilCreateInfo;
 		pipelineInfo.pColorBlendState = &colorBlendingStateInfo;
 		pipelineInfo.pDynamicState = nullptr;
 
@@ -316,38 +301,29 @@ namespace VulkanEngine
 		vkDestroyShaderModule(vulkanRender->device, vertShaderModule, nullptr);
 	}
 
-	void MainRenderPass::setupDescriptorSet()
+	void MainRenderPass::setupFrameBuffers()
 	{
-	}
+		const std::vector<VkImageView>& imageViews = vulkanRender->swapChainImageViews;
+		frameBuffers.resize(imageViews.size());
 
-	void MainRenderPass::setupFramebufferDescriptorSet()
-	{
-	}
-
-	void MainRenderPass::setupSwapChainFrameBuffers()
-	{
-		swapChainFrameBuffers.resize(vulkanRender->swapChainImageViews.size());
-
-		for (size_t i = 0; i < swapChainFrameBuffers.size(); i++)
+		for (size_t i = 0; i < frameBuffers.size(); i++)
 		{
 			VkImageView attachments[] =
 			{
-				vulkanRender->swapChainImageViews[i]
+				imageViews[i],
+				vulkanRender->depthImageView
 			};
 
 			VkFramebufferCreateInfo frameBufferInfo = {};
 			frameBufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			frameBufferInfo.renderPass = renderPass;	// 兼容就行，需要相同的附件数量和类型
-			frameBufferInfo.attachmentCount = 1;
+			frameBufferInfo.attachmentCount = sizeof(attachments) / sizeof(attachments[0]);
 			frameBufferInfo.pAttachments = attachments;
 			frameBufferInfo.width = vulkanRender->swapChainExtent.width;
 			frameBufferInfo.height = vulkanRender->swapChainExtent.height;
 			frameBufferInfo.layers = 1;
 
-			if (vkCreateFramebuffer(vulkanRender->device, &frameBufferInfo, nullptr, &swapChainFrameBuffers[i]) != VK_SUCCESS)
-			{
-				throw std::runtime_error("failed to create framebuffer!");
-			}
+			VK_CHECK_RESULT(vkCreateFramebuffer(vulkanRender->device, &frameBufferInfo, nullptr, &frameBuffers[i].frameBuffer));
 		}
 	}
 

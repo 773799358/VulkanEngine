@@ -41,7 +41,7 @@ namespace VulkanEngine
 		VkRenderPass renderPass;
 		std::vector<VulkanDescriptor> descriptors;
 		std::vector<VulkanRenderPipeline> renderPipelines;
-		VulkanFrameBuffer frameBuffer;
+		std::vector<VulkanFrameBuffer> frameBuffers;
 
 		virtual void init(VulkanRenderer* vulkanRender);
 		virtual void postInit() = 0;

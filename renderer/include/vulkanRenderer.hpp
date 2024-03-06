@@ -76,7 +76,7 @@ namespace VulkanEngine
         VkQueue presentQueue;
         QueueFamilyIndices queueIndices;
 
-        viewport viewport;
+        VkViewport viewport;
         VkRect2D scissor;
 
         // 一些初始化的验证和配置
