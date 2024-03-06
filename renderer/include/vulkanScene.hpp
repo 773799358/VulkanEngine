@@ -18,15 +18,13 @@ namespace VulkanEngine
 
 	struct UniformBufferObject
 	{
-		glm::mat4 view;
-		glm::mat4 proj;
-
-		VulkanResource resource;
+		glm::mat4 view = glm::mat4(1.0f);
+		glm::mat4 proj = glm::mat4(1.0f);
 	};
 
-	struct alignas(256) UniformBufferDynamicObject
+	struct alignas(64) UniformBufferDynamicObject
 	{
-		glm::mat4 model;
+		glm::mat4 model = glm::mat4(1.0f);
 	};
 
 	struct VulkanDescriptor
@@ -87,7 +85,13 @@ namespace VulkanEngine
 	{
 	public:
 		void init(VulkanRenderer* vulkanRender);
+
+		// 配置好场景数据后调用
 		void setupRenderData();
+
+		// TODO:场景非uniform数据更新后续再处理
+		void updateUniformRenderData();
+
 		void clear();
 
 		VulkanDescriptor descriptor;
@@ -99,10 +103,13 @@ namespace VulkanEngine
 		std::vector<PointLight*> pointLights;
 		std::vector<DirectionalLight*> directionalLights;
 
-		Camera camera;
+		CameraController cameraController;
 
-		UniformBufferObject uniform;
-		UniformBufferDynamicObject uniformDynamic;
+		VulkanResource uniformResource;
+		UniformBufferObject uniformBufferObject;
+
+		VulkanResource uniformDynamicResource;
+		std::vector<UniformBufferDynamicObject> uniformBufferDynamicObjects;
 
 	private:
 		VulkanRenderer* vulkanRenderer = nullptr;
@@ -116,6 +123,9 @@ namespace VulkanEngine
 
 		void createVertexData(StaticMesh* mesh);
 		void createIndexData(StaticMesh* mesh);
+
+		void createUniformBufferData();
+		void createDescriptorSet();
 
 		StaticMesh* createCube();
 	};

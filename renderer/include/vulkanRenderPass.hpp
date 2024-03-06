@@ -39,7 +39,7 @@ namespace VulkanEngine
 		};
 
 		VkRenderPass renderPass;
-		std::vector<VulkanDescriptor> descriptors;
+		VulkanDescriptor descriptor;
 		std::vector<VulkanRenderPipeline> renderPipelines;
 		std::vector<VulkanFrameBuffer> frameBuffers;
 
@@ -52,6 +52,7 @@ namespace VulkanEngine
 
 	protected:
 		VulkanRenderer* vulkanRender = nullptr;
+		VkDescriptorSetLayout descriptorSetLayout;
 	};
 	
 }

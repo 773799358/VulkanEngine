@@ -38,6 +38,7 @@ namespace VulkanEngine
         void cmdBeginRenderPass(VkCommandBuffer commandBuffer, VkRenderPassBeginInfo randerPassBegin, VkSubpassContents contents);
         void cmdEndRenderPass(VkCommandBuffer commandBuffer);
         void cmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline);
+        void cmdBindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout pipelineLayout, uint32_t firstSet, uint32_t descriptorSetCount, VkDescriptorSet* descriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets);
 
         // resource
         VkShaderModule createShaderModule(const std::vector<char>& code);

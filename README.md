@@ -29,3 +29,7 @@
 
 1. 解决了窗口一些事件处理的bug
 2. 拆分了两个pass，mainPass和UIPass，后续会将UIPass作为subpass进行绘制
+3. 正方体
+
+## 2024
+1. lookat camera controller

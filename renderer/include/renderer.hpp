@@ -8,6 +8,8 @@
 #include "UIPass.hpp"
 #include "vulkanScene.hpp"
 
+#include <chrono>
+
 namespace VulkanEngine
 {
     class Renderer
@@ -28,5 +30,7 @@ namespace VulkanEngine
         MainRenderPass* mainRenderPass = nullptr;
 
         VulkanRenderSceneData* sceneData = nullptr;
+
+        std::chrono::steady_clock::time_point lastFrmeTime;
     };
 }

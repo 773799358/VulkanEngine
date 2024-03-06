@@ -594,7 +594,11 @@ namespace VulkanEngine
         swapChainImageFormat = surfaceFormat.format;
         swapChainExtent = extent;
 
+        windowWidth = swapChainExtent.width;
+        windowHeight = swapChainExtent.height;
+
         scissor = { {0, 0}, {swapChainExtent.width, swapChainExtent.height} };
+        viewport = { 0.0f, 0.0f, (float)windowWidth, (float)windowHeight, 0.0f, 1.0f };
     }
 
     void VulkanRenderer::clearSwapChain()
@@ -1017,6 +1021,11 @@ namespace VulkanEngine
     void VulkanRenderer::cmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
     {
         vkCmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
+    }
+
+    void VulkanRenderer::cmdBindDescriptorSets(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout pipelineLayout, uint32_t firstSet, uint32_t descriptorSetCount, VkDescriptorSet* descriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
+    {
+        vkCmdBindDescriptorSets(commandBuffer, pipelineBindPoint, pipelineLayout, firstSet, descriptorSetCount, descriptorSets, dynamicOffsetCount, pDynamicOffsets);
     }
 
     VkShaderModule VulkanRenderer::createShaderModule(const std::vector<char>& code)

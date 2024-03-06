@@ -46,7 +46,6 @@ namespace VulkanEngine
 
 		setupAttachments();
 		setupRenderPass();
-		setupDescriptorSetLayout();
 		setupPipelines();
 		setupFrameBuffers();
 	}
@@ -58,6 +57,8 @@ namespace VulkanEngine
 		{
 			vkDestroyFramebuffer(vulkanRender->device, frameBuffer.frameBuffer, nullptr);
 		}
+		
+		vkDestroyDescriptorSetLayout(vulkanRender->device, descriptorSetLayout, nullptr);
 
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
 		{
@@ -140,6 +141,31 @@ namespace VulkanEngine
 
 	void MainRenderPass::setupDescriptorSetLayout()
 	{
+		VkDescriptorSetLayoutBinding uboLayoutBinding[2] = {};
+		uboLayoutBinding[0].binding = 0;
+		uboLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding[0].descriptorCount = 1;
+		uboLayoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;		// 仅在顶点着色器访问
+		uboLayoutBinding[0].pImmutableSamplers = nullptr;
+
+		uboLayoutBinding[1].binding = 1;
+		uboLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		uboLayoutBinding[1].descriptorCount = 1;
+		uboLayoutBinding[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		uboLayoutBinding[1].pImmutableSamplers = nullptr;
+
+		//uboLayoutBinding[2].binding = 2;
+		//uboLayoutBinding[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		//uboLayoutBinding[2].descriptorCount = 1;
+		//uboLayoutBinding[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;		// 仅在片段着色器访问
+		//uboLayoutBinding[2].pImmutableSamplers = nullptr
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = sizeof(uboLayoutBinding) / sizeof(uboLayoutBinding[0]);
+		layoutInfo.pBindings = uboLayoutBinding;
+
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRender->device, &layoutInfo, nullptr, &descriptorSetLayout));
 	}
 
 	void MainRenderPass::setupPipelines()
@@ -183,7 +209,7 @@ namespace VulkanEngine
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 1;		// 暂时不需要顶点数据
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
 		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
 		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());;
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
@@ -210,7 +236,7 @@ namespace VulkanEngine
 		rasterizationStateInfo.rasterizerDiscardEnable = VK_FALSE;		// true代表所有图元都不会进入光栅化，禁止任何输出到frameBuffer的方法
 		rasterizationStateInfo.polygonMode = VK_POLYGON_MODE_FILL;		// 填充，也可以绘制点、线
 		rasterizationStateInfo.lineWidth = 1.0f;						// 大于1.0的线需要GPU wideLines支持
-		rasterizationStateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationStateInfo.cullMode = VK_CULL_MODE_NONE;
 		rasterizationStateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;		// 顺时针为正，这里要注意，vulkan的NDC，Y是向下的
 		// 暂时不用深度偏移
 		rasterizationStateInfo.depthBiasEnable = VK_FALSE;
@@ -276,8 +302,8 @@ namespace VulkanEngine
 		// 9.管线布局
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 0;
-		pipelineLayoutInfo.pSetLayouts = nullptr;
+		pipelineLayoutInfo.setLayoutCount = 1;
+		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		pipelineLayoutInfo.pPushConstantRanges = nullptr;
 

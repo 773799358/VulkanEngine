@@ -17,6 +17,7 @@ namespace VulkanEngine
 		std::vector<int> getWindowSize();
 		void loop();
 		bool shouldClose();
+		SDL_Event& getEvent();
 
 	private:
 		SDL_Window* window = nullptr;

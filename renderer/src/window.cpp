@@ -83,4 +83,9 @@ namespace VulkanEngine
 		return isShouldClose;
 	}
 
+	SDL_Event& Window::getEvent()
+	{
+		return event;
+	}
+
 }
