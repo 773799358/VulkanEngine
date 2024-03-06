@@ -1018,7 +1018,7 @@ namespace VulkanEngine
         return 0;
     }
 
-    void VulkanRenderer::createImage(uint32_t imageWidth, uint32_t imageHeight, VkFormat format, VkImageTiling imageTiling, VkImageUsageFlags imageUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkImage& image, VkDeviceMemory& memory, VkImageCreateFlags imageCreateFlags, uint32_t arrayLayers, uint32_t miplevels)
+    void VulkanRenderer::createImage(uint32_t imageWidth, uint32_t imageHeight, VkFormat format, VkImageTiling imageTiling, VkImageUsageFlags imageUsageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkImage& image, VkDeviceMemory& memory, VkImageCreateFlags imageCreateFlags, uint32_t arrayLayers, uint32_t miplevels, VkSampleCountFlagBits numSamples)
     {
         VkImageCreateInfo imageCI{};
         imageCI.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1034,7 +1034,7 @@ namespace VulkanEngine
                                                                 // VK_IMAGE_TILING_OPTIMAL: 纹素基于具体的实现来定义布局，以实现最佳访问
         imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;		// VK_IMAGE_LAYOUT_UNDEFINED: GPU不能使用，第一个变换将丢弃纹素。
         imageCI.usage = imageUsageFlags;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCI.samples = numSamples;
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         VK_CHECK_RESULT(vkCreateImage(device, &imageCI, nullptr, &image));

@@ -4,6 +4,9 @@
 #include "vulkanRenderer.hpp"
 #include "vulkanRenderPass.hpp"
 
+#include "mainRenderPass.hpp"
+#include "UIPass.hpp"
+
 namespace VulkanEngine
 {
     class Renderer
@@ -21,6 +24,6 @@ namespace VulkanEngine
         VulkanRenderer* vulkanRenderer = nullptr;
 
         UIPass* UIRenderPass = nullptr;
-        TestRenderPass* testRenderPass = nullptr;
+        MainRenderPass* mainRenderPass = nullptr;
     };
 }

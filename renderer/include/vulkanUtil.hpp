@@ -10,5 +10,6 @@ namespace VulkanEngine
 	{
 	public:
 		static std::vector<char> readFile(const std::string& filename);
+		static VkSampleCountFlagBits getMaxUsableSampleCount(VkPhysicalDevice physicalDevice);
 	};
 }

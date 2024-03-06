@@ -52,7 +52,8 @@ namespace VulkanEngine
             VkDeviceMemory& memory,
             VkImageCreateFlags imageCreateFlags,
             uint32_t arrayLayers,
-            uint32_t miplevels);
+            uint32_t miplevels,
+            VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT);
 
         VkImageView createImageView(
             VkImage& image,

@@ -52,42 +52,5 @@ namespace VulkanEngine
 	protected:
 		VulkanRenderer* vulkanRender = nullptr;
 	};
-
-	class UIPass : public VulkanRenderPass
-	{
-	public:
-		void init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass);
-		void postInit() override;
-
-		void draw(VkCommandBuffer commandBuffer) override;
-		void clear() override;
-
-	private:
-		void uploadFonts();
-		VulkanRenderPass* mainPass = nullptr;
-	};
-
-	class TestRenderPass : public VulkanRenderPass
-	{
-	public:
-		void init(VulkanRenderer* vulkanRender) override;
-		void postInit() override;
-
-		void draw(VkCommandBuffer commandBuffer) override;
-		void recreate();
-		void clear() override;
-
-	private:
-		void setupAttachments();
-		void setupRenderPass();
-		void setupDescriptorSetLayout();
-		void setupPipelines();
-		void setupDescriptorSet();
-		void setupFramebufferDescriptorSet();
-		void setupSwapChainFrameBuffers();
-
-	// TODO:private
-	public:
-		std::vector<VkFramebuffer> swapChainFrameBuffers;
-	};
+	
 }

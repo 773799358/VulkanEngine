@@ -22,24 +22,24 @@ namespace VulkanEngine
         vulkanRenderer->init(window, basePath);
         this->basePath = basePath;
 
-        testRenderPass = new TestRenderPass();
-        testRenderPass->init(vulkanRenderer);
+        mainRenderPass = new MainRenderPass();
+        mainRenderPass->init(vulkanRenderer);
 
         UIRenderPass = new UIPass();
-        UIRenderPass->init(vulkanRenderer, testRenderPass);
+        UIRenderPass->init(vulkanRenderer, mainRenderPass);
     }
 
     void Renderer::drawFrame()
     {
-        if (vulkanRenderer->beginPresent(std::bind(&TestRenderPass::recreate, testRenderPass)))
+        if (vulkanRenderer->beginPresent(std::bind(&MainRenderPass::recreate, mainRenderPass)))
         {
             return;
         }
 
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = testRenderPass->renderPass;
-        renderPassInfo.framebuffer = testRenderPass->swapChainFrameBuffers[vulkanRenderer->currentFrameIndex];
+        renderPassInfo.renderPass = mainRenderPass->renderPass;
+        renderPassInfo.framebuffer = mainRenderPass->swapChainFrameBuffers[vulkanRenderer->currentFrameIndex];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = vulkanRenderer->swapChainExtent;
         VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -49,19 +49,19 @@ namespace VulkanEngine
         VkCommandBuffer currentCommandBuffer = vulkanRenderer->getCurrentCommandBuffer();
         vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, testRenderPass->renderPipelines[0].pipeline);
+        vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].pipeline);
 
-        testRenderPass->draw(currentCommandBuffer);
+        mainRenderPass->draw(currentCommandBuffer);
         UIRenderPass->draw(currentCommandBuffer);
 
         vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
 
-        vulkanRenderer->endPresent(std::bind(&TestRenderPass::recreate, testRenderPass));
+        vulkanRenderer->endPresent(std::bind(&MainRenderPass::recreate, mainRenderPass));
     }
 
     void Renderer::quit()
     {
-        testRenderPass->clear();
+        mainRenderPass->clear();
         UIRenderPass->clear();
         delete vulkanRenderer;
     }
