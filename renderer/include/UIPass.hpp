@@ -13,7 +13,8 @@ namespace VulkanEngine
 		void init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass);
 		void postInit() override;
 
-		void draw(VkCommandBuffer commandBuffer) override;
+		void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) override;
+		void drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize) override;
 		void clear() override;
 
 	private:

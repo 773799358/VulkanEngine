@@ -1,6 +1,7 @@
 ﻿#include "mainRenderPass.hpp"
 #include "macro.hpp"
 #include "vulkanUtil.hpp"
+#include "vulkanScene.hpp"
 
 namespace VulkanEngine
 {
@@ -18,9 +19,14 @@ namespace VulkanEngine
 	{
 	}
 
-	void MainRenderPass::draw(VkCommandBuffer commandBuffer)
+	void MainRenderPass::drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize)
 	{
-		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+		vkCmdDrawIndexed(commandBuffer, indexSize, 1, 0, 0, 0);
+	}
+
+	void MainRenderPass::draw(VkCommandBuffer commandBuffer, uint32_t vertexSize)
+	{
+		vkCmdDraw(commandBuffer, vertexSize, 1, 0, 0);
 	}
 
 	void MainRenderPass::recreate()
@@ -172,12 +178,15 @@ namespace VulkanEngine
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
 		// 1.输入的顶点数据描述
+		auto bindingDescription = Vertex::getBindingDescription();
+		auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;		// 暂时不需要顶点数据
-		vertexInputInfo.pVertexBindingDescriptions = nullptr;
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
-		vertexInputInfo.pVertexAttributeDescriptions = nullptr;
+		vertexInputInfo.vertexBindingDescriptionCount = 1;		// 暂时不需要顶点数据
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());;
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 		// 2.绘制的几何图元拓扑类型
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};

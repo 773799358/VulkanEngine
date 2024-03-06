@@ -22,6 +22,11 @@ namespace VulkanEngine
         vulkanRenderer->init(window, basePath);
         this->basePath = basePath;
 
+        sceneData = new VulkanRenderSceneData();
+        sceneData->init(vulkanRenderer);
+
+        sceneData->meshes.push_back(sceneData->createCube());
+
         mainRenderPass = new MainRenderPass();
         mainRenderPass->init(vulkanRenderer);
 
@@ -53,8 +58,14 @@ namespace VulkanEngine
 
         vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].pipeline);
 
-        mainRenderPass->draw(currentCommandBuffer);
-        UIRenderPass->draw(currentCommandBuffer);
+        VkBuffer vertexBuffers[] = { sceneData->meshes[0]->vertexBuffer.buffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, offsets);
+
+        vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->meshes[0]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+        mainRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[0]->indices.size());
+        UIRenderPass->draw(currentCommandBuffer, 0);
 
         vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
 
@@ -65,6 +76,7 @@ namespace VulkanEngine
     {
         mainRenderPass->clear();
         UIRenderPass->clear();
+        sceneData->clear();
         delete vulkanRenderer;
     }
 

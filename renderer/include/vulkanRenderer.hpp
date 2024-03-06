@@ -33,6 +33,8 @@ namespace VulkanEngine
 
         // command
         VkCommandBuffer getCurrentCommandBuffer();
+        VkCommandBuffer beginSingleTimeCommands();
+        void endSingleTimeCommands(VkCommandBuffer commandBuffer);
         void cmdBeginRenderPass(VkCommandBuffer commandBuffer, VkRenderPassBeginInfo randerPassBegin, VkSubpassContents contents);
         void cmdEndRenderPass(VkCommandBuffer commandBuffer);
         void cmdBindPipeline(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline);
@@ -62,6 +64,15 @@ namespace VulkanEngine
             VkImageViewType viewType,
             uint32_t layoutCount,
             uint32_t miplevels);
+
+        void createBuffer(
+            VkDeviceSize size,
+            VkBufferUsageFlags usage,
+            VkMemoryPropertyFlags properties,
+            VkBuffer& buffer,
+            VkDeviceMemory& bufferMemory);
+
+        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     public:
         std::string basePath = "";

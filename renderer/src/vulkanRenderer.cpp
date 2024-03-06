@@ -969,6 +969,41 @@ namespace VulkanEngine
         return commandBuffers[currentFrameIndex];
     }
 
+    VkCommandBuffer VulkanRenderer::beginSingleTimeCommands()
+    {
+        VkCommandBufferAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandPool = mainCommandPool;
+        allocInfo.commandBufferCount = 1;
+
+        VkCommandBuffer commandBuffer;
+        vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+
+        VkCommandBufferBeginInfo beginInfo = {};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;		// 提交一次就不用了
+
+        vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+        return commandBuffer;
+    }
+
+    void VulkanRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+    {
+        vkEndCommandBuffer(commandBuffer);
+
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphicsQueue);				// 阻塞，直到命令完毕
+
+        vkFreeCommandBuffers(device, mainCommandPool, 1, &commandBuffer);
+    }
+
     void VulkanRenderer::cmdBeginRenderPass(VkCommandBuffer commandBuffer, VkRenderPassBeginInfo randerPassBegin, VkSubpassContents contents)
     {
         vkCmdBeginRenderPass(commandBuffer, &randerPassBegin, contents);
@@ -1074,4 +1109,42 @@ namespace VulkanEngine
 
         return imageView;
     }
+
+    void VulkanRenderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+    {
+        VkBufferCreateInfo bufferInfo = {};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size;
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;		// 不被各种队列共享
+
+        VK_CHECK_RESULT(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, buffer, &memRequirements);			// 查询内存需求
+
+        // 真正分配内存
+        VkMemoryAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;		// 查询真正大小，具体看对齐情况
+        allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+
+        VK_CHECK_RESULT(vkAllocateMemory(device, &allocInfo, nullptr, &bufferMemory));
+
+        vkBindBufferMemory(device, buffer, bufferMemory, 0);		// 如果偏移量non-zero，需要能够被memRequirements.alignment整除
+    }
+
+    void VulkanRenderer::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+    {
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+
+        VkBufferCopy copyRegion = {};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = size;
+        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+        endSingleTimeCommands(commandBuffer);
+    }
+
 }

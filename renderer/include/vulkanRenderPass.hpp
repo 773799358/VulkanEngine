@@ -46,7 +46,8 @@ namespace VulkanEngine
 		virtual void init(VulkanRenderer* vulkanRender);
 		virtual void postInit() = 0;
 
-		virtual void draw(VkCommandBuffer commandBuffer) = 0;
+		virtual void drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize) = 0;
+		virtual void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) = 0;
 		virtual void clear() = 0;
 
 	protected:

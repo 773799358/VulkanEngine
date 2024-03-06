@@ -75,7 +75,7 @@ namespace VulkanEngine
 		vkFreeCommandBuffers(vulkanRender->device, vulkanRender->mainCommandPool, 1, &commandBuffer);
 	}
 
-	void UIPass::draw(VkCommandBuffer commandBuffer)
+	void UIPass::draw(VkCommandBuffer commandBuffer, uint32_t vertexSize)
 	{
 		ImGui_ImplVulkan_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
@@ -84,6 +84,10 @@ namespace VulkanEngine
 		ImGui::ShowDemoWindow();
 		ImGui::Render();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), vulkanRender->getCurrentCommandBuffer());
+	}
+
+	void UIPass::drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize)
+	{
 	}
 
 	void UIPass::clear()

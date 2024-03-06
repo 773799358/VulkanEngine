@@ -6,6 +6,7 @@
 
 #include "mainRenderPass.hpp"
 #include "UIPass.hpp"
+#include "vulkanScene.hpp"
 
 namespace VulkanEngine
 {
@@ -25,5 +26,7 @@ namespace VulkanEngine
 
         UIPass* UIRenderPass = nullptr;
         MainRenderPass* mainRenderPass = nullptr;
+
+        VulkanRenderSceneData* sceneData = nullptr;
     };
 }
