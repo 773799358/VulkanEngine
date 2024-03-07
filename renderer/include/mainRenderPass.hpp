@@ -19,14 +19,11 @@ namespace VulkanEngine
 		void clear() override;
 
 	private:
-		void setupAttachments();
 		void setupRenderPass();
 		void setupDescriptorSetLayout();
 		void setupPipelines();
 		void setupFrameBuffers();
 
-		// TODO:private
-	public:
-		VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+		VulkanFrameBufferAttachment colorAttachment;
 	};
 }

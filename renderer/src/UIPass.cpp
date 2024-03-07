@@ -27,6 +27,7 @@ namespace VulkanEngine
 		initInfo.ImageCount = vulkanRender->MAX_FRAMES_IN_FLIGHT;
 
 		initInfo.RenderPass = mainPass->renderPass;
+		initInfo.MSAASamples = vulkanRender->msaaSamples;
 		ImGui_ImplVulkan_Init(&initInfo);
 
 		uploadFonts();

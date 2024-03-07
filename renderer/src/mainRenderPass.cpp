@@ -8,7 +8,6 @@ namespace VulkanEngine
 	void MainRenderPass::init(VulkanRenderer* vulkanRender)
 	{
 		VulkanRenderPass::init(vulkanRender);
-		setupAttachments();
 		setupRenderPass();
 		setupDescriptorSetLayout();
 		setupPipelines();
@@ -36,6 +35,10 @@ namespace VulkanEngine
 			vkDestroyFramebuffer(vulkanRender->device, frameBuffer.frameBuffer, nullptr);
 		}
 
+		vkDestroyImage(vulkanRender->device, colorAttachment.image, nullptr);
+		vkDestroyImageView(vulkanRender->device, colorAttachment.imageView, nullptr);
+		vkFreeMemory(vulkanRender->device, colorAttachment.memory, nullptr);
+
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
 		{
 			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
@@ -44,7 +47,6 @@ namespace VulkanEngine
 
 		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
 
-		setupAttachments();
 		setupRenderPass();
 		setupPipelines();
 		setupFrameBuffers();
@@ -57,7 +59,11 @@ namespace VulkanEngine
 		{
 			vkDestroyFramebuffer(vulkanRender->device, frameBuffer.frameBuffer, nullptr);
 		}
-		
+
+		vkDestroyImage(vulkanRender->device, colorAttachment.image, nullptr);
+		vkDestroyImageView(vulkanRender->device, colorAttachment.imageView, nullptr);
+		vkFreeMemory(vulkanRender->device, colorAttachment.memory, nullptr);
+
 		vkDestroyDescriptorSetLayout(vulkanRender->device, descriptorSetLayout, nullptr);
 
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
@@ -69,16 +75,11 @@ namespace VulkanEngine
 		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
 	}
 
-	void MainRenderPass::setupAttachments()
-	{
-
-	}
-
 	void MainRenderPass::setupRenderPass()
 	{
 		VkAttachmentDescription colorAttachment = {};
 		colorAttachment.format = vulkanRender->swapChainImageFormat;
-		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;	// 不做多重采样
+		colorAttachment.samples = vulkanRender->msaaSamples;
 		// color 渲染前清屏，渲染后保留内容
 		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -87,15 +88,17 @@ namespace VulkanEngine
 		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
 		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;		// render pass 完成后请将 layout 转至 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR 再输出
+		//colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;		// render pass 完成后请将 layout 转至 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR 再输出
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;	// MSAA不能直接呈现
 
 		VkAttachmentReference colorAttachmentRef = {};
 		colorAttachmentRef.attachment = 0;		// 指向第一个VkAttachmentDescription
 		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;	// 新提交的渲染任务需要将 layout 从 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR 转为 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL 再用于绘制。
 
+		// 这里指定了depth的转换，所以不用像tutorial，create depth image的时候做转换
 		VkAttachmentDescription depthAttachment = {};
 		depthAttachment.format = vulkanRender->depthImageFormat;
-		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.samples = vulkanRender->msaaSamples;
 		// depth 渲染前清屏，渲染后保留（除非后面不使用depth了，保守一些）
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -108,14 +111,29 @@ namespace VulkanEngine
 		depthAttachmentRef.attachment = 1;
 		depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+		VkAttachmentDescription colorAttachmentResolve = {};
+		colorAttachmentResolve.format = vulkanRender->swapChainImageFormat;
+		colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		VkAttachmentReference colorAttachmentResolveRef = {};
+		colorAttachmentResolveRef.attachment = 2;
+		colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 		// subpass
 		VkSubpassDescription subpass = {};
 		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
 		subpass.pDepthStencilAttachment = &depthAttachmentRef;
+		subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
-		VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment };
+		VkAttachmentDescription attachments[] = { colorAttachment, depthAttachment, colorAttachmentResolve };
 
 		// 配置依赖
 		VkSubpassDependency dependency = {};
@@ -176,9 +194,9 @@ namespace VulkanEngine
 		std::string shaderDir = vulkanRender->basePath + "spvs/";
 
 		std::string vert = shaderDir + "vert.spv";
-		auto vertShaderCode = vulkanUtil::readFile(vert);
+		auto vertShaderCode = VulkanUtil::readFile(vert);
 		std::string frag = shaderDir + "frag.spv";
-		auto fragShaderCode = vulkanUtil::readFile(frag);
+		auto fragShaderCode = VulkanUtil::readFile(frag);
 
 		// shaderModule只是字节码的容器，仅在渲染管线处理过程中需要，设置完就可以销毁
 		VkShaderModule vertShaderModule = vulkanRender->createShaderModule(vertShaderCode);
@@ -249,7 +267,7 @@ namespace VulkanEngine
 		VkPipelineMultisampleStateCreateInfo multisamplingInfo = {};
 		multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisamplingInfo.sampleShadingEnable = VK_FALSE;
-		multisamplingInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;		// NxMSAA
+		multisamplingInfo.rasterizationSamples = vulkanRender->msaaSamples;		// NxMSAA
 		multisamplingInfo.minSampleShading = 1.0f;
 		multisamplingInfo.pSampleMask = nullptr;
 		multisamplingInfo.alphaToCoverageEnable = VK_FALSE;
@@ -341,12 +359,38 @@ namespace VulkanEngine
 		const std::vector<VkImageView>& imageViews = vulkanRender->swapChainImageViews;
 		frameBuffers.resize(imageViews.size());
 
+		uint32_t swapChainWidth = vulkanRender->swapChainExtent.width;
+		uint32_t swapChainHeight = vulkanRender->swapChainExtent.height;
+
+		VkFormat format = vulkanRender->swapChainImageFormat;
+
+		colorAttachment.format = format;
+
+		vulkanRender->createImage(
+			swapChainWidth,
+			swapChainHeight,
+			format,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			colorAttachment.image,
+			colorAttachment.memory,
+			0,
+			1,
+			1,
+			vulkanRender->msaaSamples);
+
+		colorAttachment.imageView = vulkanRender->createImageView(colorAttachment.image, format, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_VIEW_TYPE_2D, 1, 1);
+
+		vulkanRender->transitionImageLayout(colorAttachment.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 1, 1, VK_IMAGE_ASPECT_COLOR_BIT);
+
 		for (size_t i = 0; i < frameBuffers.size(); i++)
 		{
 			VkImageView attachments[] =
 			{
-				imageViews[i],
-				vulkanRender->depthImageView
+				colorAttachment.imageView,
+				vulkanRender->depthImageView,
+				vulkanRender->swapChainImageViews[i]
 			};
 
 			VkFramebufferCreateInfo frameBufferInfo = {};
@@ -354,8 +398,8 @@ namespace VulkanEngine
 			frameBufferInfo.renderPass = renderPass;	// 兼容就行，需要相同的附件数量和类型
 			frameBufferInfo.attachmentCount = sizeof(attachments) / sizeof(attachments[0]);
 			frameBufferInfo.pAttachments = attachments;
-			frameBufferInfo.width = vulkanRender->swapChainExtent.width;
-			frameBufferInfo.height = vulkanRender->swapChainExtent.height;
+			frameBufferInfo.width = swapChainWidth;
+			frameBufferInfo.height = swapChainHeight;
 			frameBufferInfo.layers = 1;
 
 			VK_CHECK_RESULT(vkCreateFramebuffer(vulkanRender->device, &frameBufferInfo, nullptr, &frameBuffers[i].frameBuffer));

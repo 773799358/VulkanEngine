@@ -6,7 +6,7 @@
 
 namespace VulkanEngine
 {
-	class vulkanUtil
+	class VulkanUtil
 	{
 	public:
 		static std::vector<char> readFile(const std::string& filename);

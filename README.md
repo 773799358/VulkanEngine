@@ -33,3 +33,5 @@
 
 ## 2024
 1. lookat camera controller
+2. 用 uniform_buffer_dynamic 更新模型 model 矩阵
+3. 画了两个立方体，锯齿严重，所以加入msaa，后续应该会添加FXAA或者SMAA这种图像空间抗锯齿的选项

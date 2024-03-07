@@ -75,6 +75,8 @@ namespace VulkanEngine
 
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
+        void transitionImageLayout(VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layoutCount, uint32_t miplevels, VkImageAspectFlags aspectMask);
+
     public:
         std::string basePath = "";
         Window* windowHandler = nullptr;
@@ -138,6 +140,7 @@ namespace VulkanEngine
         VkQueue computeQueue;
 
         // swapChain
+        VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         static const int MAX_FRAMES_IN_FLIGHT = 3;
         uint32_t currentSwapChainImageIndex = 0;
         uint32_t currentFrameIndex = 0;

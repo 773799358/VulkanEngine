@@ -4,7 +4,7 @@
 
 namespace VulkanEngine
 {
-	std::vector<char> vulkanUtil::readFile(const std::string& filename)
+	std::vector<char> VulkanUtil::readFile(const std::string& filename)
 	{
 		// ate:从文件末尾开始读取，能根据位置来确定文件大小
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -26,7 +26,7 @@ namespace VulkanEngine
 		return buffer;
 	}
 
-	VkSampleCountFlagBits vulkanUtil::getMaxUsableSampleCount(VkPhysicalDevice physicalDevice)
+	VkSampleCountFlagBits VulkanUtil::getMaxUsableSampleCount(VkPhysicalDevice physicalDevice)
 	{
 		VkPhysicalDeviceProperties physicalDeviceProperties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
