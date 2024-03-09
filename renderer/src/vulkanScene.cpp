@@ -1,6 +1,9 @@
 ﻿#include "vulkanScene.hpp"
 #include <include/macro.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 namespace VulkanEngine
 {
 	VkVertexInputBindingDescription Vertex::getBindingDescription()
@@ -14,9 +17,9 @@ namespace VulkanEngine
 		return bindingDescription;
 	}
 
-	std::array<VkVertexInputAttributeDescription, 4> Vertex::getAttributeDescriptions()
+	std::array<VkVertexInputAttributeDescription, 5> Vertex::getAttributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
+		std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions = {};
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -38,6 +41,11 @@ namespace VulkanEngine
 		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[3].offset = offsetof(Vertex, texcoord);
 
+		attributeDescriptions[4].binding = 0;
+		attributeDescriptions[4].location = 4;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[4].offset = offsetof(Vertex, tangent);
+
 		return attributeDescriptions;
 	}
 
@@ -49,6 +57,29 @@ namespace VulkanEngine
 	void VulkanRenderSceneData::init(VulkanRenderer* vulkanRenderer)
 	{
 		this->vulkanRenderer = vulkanRenderer;
+
+		// TODO:没设置默认AO和自发光贴图
+		PBRMaterial* material = new PBRMaterial();
+
+		std::string defaultPaht = vulkanRenderer->basePath + "/resources/models/default/";
+
+		Texture* diffuse = new Texture();
+		diffuse->fullPath = defaultPaht + "/default_white.png";
+		Texture* normal = new Texture();
+		normal->fullPath = defaultPaht + "/default_normal.png";
+		Texture* metallicRoughness = new Texture();
+		metallicRoughness->fullPath = defaultPaht + "/default_mr.jpg";
+
+		textures.resize(3);
+		textures[0] = diffuse;
+		textures[1] = normal;
+		textures[2] = metallicRoughness;
+
+		material->baseColor = diffuse;
+		material->normal = normal;
+		material->metallicRoughness = metallicRoughness;
+
+		materials.push_back(material);
 	}
 
 	void VulkanRenderSceneData::setupRenderData()
@@ -56,12 +87,17 @@ namespace VulkanEngine
 		uniformBufferDynamicObjects.resize(meshes.size());
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			uniformBufferDynamicObjects[i].model = meshes[i]->node->transform;
+			uniformBufferDynamicObjects[i].model = meshes[i]->node->worldTransform;
 			createVertexData(meshes[i]);
 			createIndexData(meshes[i]);
 		}
 		createUniformBufferData();
 		createDescriptorSet(); 
+
+		for (size_t i = 0; i < textures.size(); i++)
+		{
+			textures[i]->createTextureImage(vulkanRenderer);
+		}
 	}
 
 	void VulkanRenderSceneData::clear()
@@ -74,6 +110,19 @@ namespace VulkanEngine
 			vkDestroyBuffer(device, meshes[i]->indexBuffer.buffer, nullptr);
 			vkFreeMemory(device, meshes[i]->indexBuffer.memory, nullptr);
 			delete meshes[i];
+		}
+
+		for (size_t i = 0; i < textures.size(); i++)
+		{
+			vkDestroyImage(device, textures[i]->textureImage, nullptr);
+			vkDestroyImageView(device, textures[i]->textureImageView, nullptr);
+			vkFreeMemory(device, textures[i]->textureImageMemory, nullptr);
+			delete textures[i];
+		}
+
+		for (size_t i = 0; i < materials.size(); i++)
+		{
+			delete materials[i];
 		}
 
 		for (size_t i = 0; i < nodes.size(); i++)
@@ -105,8 +154,8 @@ namespace VulkanEngine
 		transforms.resize(meshes.size());
 		for (int i = 0; i < meshes.size(); i++)
 		{
-			transforms[i].model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(0.0f, (float)(i * 2 - 1), 0.0f));
-			transforms[i].model = glm::translate(glm::mat4(1.0f), glm::vec3((float)(i * 2 - 1), 0.0f, 0.0f)) * transforms[i].model;
+			transforms[i].model = meshes[i]->node->worldTransform;
+			//transforms[i].model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * transforms[i].model;
 		}
 
 		{
@@ -124,17 +173,32 @@ namespace VulkanEngine
 		}
 	}
 
-	VkSampler VulkanRenderSceneData::getLinearSampler()
+	Box VulkanRenderSceneData::getSceneBounds()
 	{
-		if (linearSampler == VK_NULL_HANDLE)
+		Box box;
+
+		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			
+			Mesh* mesh = meshes[i];
+			for (size_t vertexIndex = 0; vertexIndex < mesh->vertices.size(); vertexIndex++)
+			{
+				box.addPoint(mesh->node->worldTransform * glm::vec4(mesh->vertices[vertexIndex].position, 1.0f));
+			}
 		}
 
-		return linearSampler;
+		return box;
 	}
 
-	void VulkanRenderSceneData::createVertexData(StaticMesh* mesh)
+	void VulkanRenderSceneData::lookAtSceneCenter()
+	{
+		Box box = getSceneBounds();
+		// 这里注意，直接调用vec3.length，是分量个数
+		float radius = glm::length(box.getSize());
+		radius *= 2.0f * glm::sqrt(2.0f);
+		cameraController.setCenterAndRadius(box.getCenter(), radius);
+	}
+
+	void VulkanRenderSceneData::createVertexData(Mesh* mesh)
 	{
 		auto& vertices = mesh->vertices;
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -156,7 +220,7 @@ namespace VulkanEngine
 		vkFreeMemory(vulkanRenderer->device, stagingBufferMemory, nullptr);
 	}
 
-	void VulkanRenderSceneData::createIndexData(StaticMesh* mesh)
+	void VulkanRenderSceneData::createIndexData(Mesh* mesh)
 	{
 		auto& indices = mesh->indices;
 		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
@@ -231,7 +295,8 @@ namespace VulkanEngine
 
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRenderer->device, &layoutInfo, nullptr, &descriptor.layout));
 
-		descriptor.descriptorSet.resize(vulkanRenderer->MAX_FRAMES_IN_FLIGHT);
+		// TODO:这里一个set是不是就够用了，vulkan tutorial用的是frame count，从semaphore的依赖上看起来不会有问题
+		descriptor.descriptorSet.resize(1);
 		for (size_t i = 0; i < descriptor.descriptorSet.size(); i++)
 		{
 			VkDescriptorSetAllocateInfo allocateInfo = {};
@@ -244,7 +309,6 @@ namespace VulkanEngine
 			VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanRenderer->device, &allocateInfo, &descriptor.descriptorSet[i]));
 		}
 
-		// TODO:这里什么情况下需要每帧更新呢？
 		for (size_t i = 0; i < descriptor.descriptorSet.size(); i++)
 		{
 			VkDescriptorBufferInfo bufferInfo[2] = {};
@@ -296,56 +360,118 @@ namespace VulkanEngine
 		}
 	}
 
-	StaticMesh* VulkanRenderSceneData::createCube()
+	Box::Box()
 	{
-		StaticMesh* mesh = new StaticMesh();
+		min.x = min.y = min.z = 1e30f;
+		max.x = max.y = max.z = -1e30f;
+	}
+
+	void Box::addPoint(const glm::vec3& point)
+	{
+		max = glm::max(point, max);
+		min = glm::min(point, min);
+	}
+
+	void Box::unionBox(const Box& box)
+	{
+		if (isValid() && box.isValid())
+		{
+			min = glm::min(box.min, min);
+			max = glm::max(box.max, max);
+		}
+		else if (box.isValid())
+		{
+			*this = box;
+		}
+	}
+
+	glm::vec3 Box::getCenter()
+	{
+		return (min + max) / 2.0f;
+	}
+
+	glm::vec3 Box::getSize()
+	{
+		return (max - min);
+	}
+
+	bool Box::isValid() const
+	{
+		return max.x >= min.x && max.y >= min.y && max.z >= min.z;
+	}
+
+	void Texture::createTextureImage(VulkanRenderer* vulkanRender)
+	{
+		int texWidth, texHeight, texChannels;
+		stbi_uc* pixels = stbi_load(fullPath.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);		// 强制4通道，有利于对齐
+
+		mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
+		VkDeviceSize imageSize = texWidth * texHeight * 4;
+
+		if (!pixels)
+		{
+			LOG_ERROR("failed to load texture image : {}", fullPath);
+		}
+
+		vulkanRender->createTextureImage(textureImage, textureImageView, textureImageMemory, texWidth, texHeight, pixels, mipLevels);
+
+		sampler = vulkanRender->getOrCreateMipmapSampler(mipLevels);
+
+		stbi_image_free(pixels);
+	}
+
+	Mesh* VulkanRenderSceneData::createCube()
+	{
+		Mesh* mesh = new Mesh();
 		Node* node = new Node();
-		node->transform = glm::mat4(1.0f);
+		node->worldTransform = glm::mat4(1.0f);
+		node->localTransform = glm::mat4(1.0f);
 		mesh->node = node;
 		mesh->vertices =
 		{
 			// positions             // colors          // normals          // texture coords
-			{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{0.0f,  0.0f}},
-			{{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{1.0f,  0.0f}},
-			{{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{1.0f,  1.0f}},
-			{{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{1.0f,  1.0f}},
-			{{-0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{0.0f,  1.0f}},
-			{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{0.0f,  0.0f}},
+			{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 1.0f},{0.0f,  0.0f, -1.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
 
-			{{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{0.0f,  0.0f}},
-			{{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{1.0f,  0.0f}},
-			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{1.0f,  1.0f}},
-			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{1.0f,  1.0f}},
-			{{-0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{0.0f,  1.0f}},
-			{{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{0.0f,  0.0f}},
+			{{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f},{0.0f,  0.0f,  1.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
 
-			{{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{1.0f,  0.0f}},
-			{{-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{1.0f,  1.0f}},
-			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{0.0f,  1.0f}},
-			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{0.0f,  1.0f}},
-			{{-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{0.0f,  0.0f}},
-			{{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{1.0f,  0.0f}},
+			{{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f},{-1.0f,  0.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
 
-			{{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{1.0f,  0.0f}},
-			{{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{1.0f,  1.0f}},
-			{{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{0.0f,  1.0f}},
-			{{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{0.0f,  1.0f}},
-			{{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{0.0f,  0.0f}},
-			{{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{1.0f,  0.0f}},
+			{{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f},{1.0f,  0.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
 
-			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{0.0f,  1.0f}},
-			{{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{1.0f,  1.0f}},
-			{{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{1.0f,  0.0f}},
-			{{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{1.0f,  0.0f}},
-			{{-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{0.0f,  0.0f}},
-			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{0.0f,  1.0f}},
+			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 1.0f},{0.0f, -1.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
 
-			{{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{0.0f,  1.0f}},
-			{{ 0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{1.0f,  1.0f}},
-			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{1.0f,  0.0f}},
-			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{1.0f,  0.0f}},
-			{{-0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{0.0f,  0.0f}},
-			{{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{0.0f,  1.0f}}
+			{{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{1.0f,  1.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{ 0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{1.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f,  0.5f,  0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{0.0f,  0.0f}, {0.0f, 0.0f, 0.0f}},
+			{{-0.5f,  0.5f, -0.5f}, {1.0f, 1.0f, 1.0f},{0.0f,  1.0f,  0.0f},{0.0f,  1.0f}, {0.0f, 0.0f, 0.0f}}
 		};
 
 		mesh->indices =

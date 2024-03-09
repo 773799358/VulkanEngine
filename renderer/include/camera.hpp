@@ -31,6 +31,9 @@ namespace VulkanEngine
 		glm::vec3 right;
 		glm::vec3 up;
 		glm::vec3 worldUp;
+
+		float near = 0.1f;
+		float far = 256.0f;
 	};
 
 	class CameraController
@@ -39,6 +42,10 @@ namespace VulkanEngine
 		CameraController();
 
 		void processInputEvent(SDL_Event* event, float speed); 
+
+		glm::vec3 getCenter();
+
+		void setCenterAndRadius(const glm::vec3& center, float radius);
 		
 		Camera camera = { glm::vec3(0.0f, 2.0f, 2.0f), -45, 180 };
 		 
@@ -46,7 +53,9 @@ namespace VulkanEngine
 
 		void cameraLookAtCenter();
 		float radius;
+		glm::vec3 center = glm::vec3(0.0f);
 		float moveSpeed = 0.1f;
 		bool sprint = false;	// 加速
+		float minRadius;
 	};
 }

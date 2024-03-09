@@ -1,5 +1,6 @@
 ﻿#include "macro.hpp"
 #include "renderer.hpp"
+#include "modelLoader.hpp"
 
 #include <iostream>
 #include <map>
@@ -25,12 +26,17 @@ namespace VulkanEngine
         sceneData = new VulkanRenderSceneData();
         sceneData->init(vulkanRenderer);
 
-        for (int i = 0; i < 2; i++)
-        {
-            StaticMesh* cube = sceneData->createCube();
-            sceneData->meshes.push_back(cube);
-            sceneData->nodes.push_back(cube->node);
-        }
+        //std::string modelPath = basePath + "/resources/models/post_apocalyptic_telecaster_-_final_gap/scene.gltf";
+        std::string modelPath = basePath + "/resources/models/dae_-_bilora_bella_46_camera_-_game_ready_asset.glb";
+        //std::string modelPath = basePath + "/resources/models/reflection_scene.gltf";
+        Model model(modelPath, sceneData);
+
+        //for (int i = 0; i < 2; i++)
+        //{
+        //    Mesh* cube = sceneData->createCube();
+        //    sceneData->meshes.push_back(cube);
+        //    sceneData->nodes.push_back(cube->node);
+        //}
 
         sceneData->setupRenderData();
 
@@ -39,6 +45,8 @@ namespace VulkanEngine
 
         UIRenderPass = new UIPass();
         UIRenderPass->init(vulkanRenderer, mainRenderPass);
+
+        sceneData->lookAtSceneCenter();
 
         lastFrmeTime = std::chrono::high_resolution_clock::now();
     }
@@ -79,7 +87,7 @@ namespace VulkanEngine
         for (size_t i = 0; i < sceneData->meshes.size(); i++)
         {
             uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
-            vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, 1, &sceneData->descriptor.descriptorSet[vulkanRenderer->currentFrameIndex], 1, &dynamicOffset);
+            vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, 1, &sceneData->descriptor.descriptorSet[0], 1, &dynamicOffset);
 
             VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
             VkDeviceSize offsets[] = { 0 };

@@ -5,6 +5,7 @@
 #include <array>
 #include "camera.hpp"
 #include "vulkanRenderer.hpp"
+#include <map>
 
 namespace VulkanEngine
 {
@@ -36,27 +37,69 @@ namespace VulkanEngine
 	struct Vertex
 	{
 		glm::vec3 position;
-		glm::vec3 color;
+
+		// 将position与其他属性进行分离，可以加速顶点着色
+		glm::vec3 color = glm::vec3(1.0f);
 		glm::vec3 normal;
 		glm::vec2 texcoord;
+		glm::vec3 tangent;
 
 		static VkVertexInputBindingDescription getBindingDescription();
-		static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions();
+		static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions();
 
 		bool operator== (const Vertex& other) const;
 	};
 
-	struct Material
+	struct Texture
 	{
+		std::string path;
+		std::string fullPath;
+		VkImage textureImage;
+		VkImageView textureImageView;
+		VkDeviceMemory textureImageMemory;
+		uint32_t mipLevels = 1;
+		VkSampler sampler;
 
+		void createTextureImage(VulkanRenderer* vulkanRender);
+	};
+
+	struct PBRMaterial
+	{
+		Texture* baseColor;
+		Texture* metallicRoughness;
+		Texture* normal;
+		Texture* occlusion;
+		Texture* emissive;
+		
+		//TODO:用统一属性和材质描述
+		//VulkanResource materialUniform;
+		//VkDescriptorSet descriptorSet;
 	};
 
 	struct Node
 	{
-		glm::mat4 transform;
+		std::string name;
+		glm::mat4 worldTransform = glm::mat4(1.0f);
+		glm::mat4 localTransform = glm::mat4(1.0f);
+		Node* parent = nullptr;
+		std::vector<Node*> children;
 	};
 
-	struct StaticMesh
+	struct Box
+	{
+		Box();
+
+		glm::vec3 min;
+		glm::vec3 max;
+
+		void addPoint(const glm::vec3& point);
+		void unionBox(const Box& box);
+		glm::vec3 getCenter();
+		glm::vec3 getSize();
+		bool isValid() const;
+	};
+
+	struct Mesh
 	{
 		Node* node = nullptr;
 		std::vector<Vertex> vertices;
@@ -64,11 +107,8 @@ namespace VulkanEngine
 
 		std::vector<uint32_t> indices;
 		VulkanResource indexBuffer;
-	};
 
-	struct Texture
-	{
-
+		PBRMaterial* material = nullptr;
 	};
 
 	struct PointLight
@@ -92,13 +132,18 @@ namespace VulkanEngine
 		// TODO:场景非uniform数据更新后续再处理
 		void updateUniformRenderData();
 
+		Box getSceneBounds();
+
+		void lookAtSceneCenter();
+
 		void clear();
 
 		VulkanDescriptor descriptor;
 
+		Node* rootNode = nullptr;
 		std::vector<Node*> nodes;
-		std::vector<StaticMesh*> meshes;
-		std::vector<Material*> materials;
+		std::vector<Mesh*> meshes;
+		std::vector<PBRMaterial*> materials;
 		std::vector<Texture*> textures;
 		std::vector<PointLight*> pointLights;
 		std::vector<DirectionalLight*> directionalLights;
@@ -114,19 +159,14 @@ namespace VulkanEngine
 	private:
 		VulkanRenderer* vulkanRenderer = nullptr;
 
-		//VkSampler nearestSampler = VK_NULL_HANDLE;
-		VkSampler linearSampler = VK_NULL_HANDLE;
-
 	public:
-		//VkSampler getNearestSampler();
-		VkSampler getLinearSampler();
 
-		void createVertexData(StaticMesh* mesh);
-		void createIndexData(StaticMesh* mesh);
+		void createVertexData(Mesh* mesh);
+		void createIndexData(Mesh* mesh);
 
 		void createUniformBufferData();
 		void createDescriptorSet();
 
-		StaticMesh* createCube();
+		Mesh* createCube();
 	};
 }

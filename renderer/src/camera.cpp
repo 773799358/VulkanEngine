@@ -17,13 +17,13 @@ namespace VulkanEngine
 	{
 		if (reverse)
 		{
-			glm::mat4 pro = glm::perspective(glm::radians(zoom), aspect, 50.0f, 0.1f);
+			glm::mat4 pro = glm::perspective(glm::radians(zoom), aspect, far, near);
 			pro[1][1] *= -1;		// vulkan跟opengl y相反
 			return pro;
 		}
 		else 
 		{
-			glm::mat4 pro = glm::perspective(glm::radians(zoom), aspect, 0.1f, 50.0f);
+			glm::mat4 pro = glm::perspective(glm::radians(zoom), aspect, near, far);
 			pro[1][1] *= -1;
 			return pro;
 		}
@@ -128,8 +128,8 @@ namespace VulkanEngine
 				//camera.zoom += 45.0f * velocity;
 				//camera.zoom = glm::clamp(camera.zoom, 1.0f, 180.0f);
 			}
-			radius -= event->wheel.y;
-			radius = glm::max(radius, 2.0f);
+			radius -= event->wheel.y * minRadius;
+			radius = glm::max(radius, minRadius);
 		}
 
 		if (event->type == SDL_KEYDOWN || (event->type == SDL_MOUSEMOTION && event->button.button == SDL_BUTTON_LEFT) || event->type == SDL_MOUSEWHEEL)
@@ -139,9 +139,24 @@ namespace VulkanEngine
 		}
 	}
 
+	glm::vec3 CameraController::getCenter()
+	{
+		return center;
+	}
+
+	void CameraController::setCenterAndRadius(const glm::vec3& center, float radius)
+	{
+		camera.position += (center - this->center);
+		this->center = center;
+		this->radius = radius;
+		minRadius = radius / 10.0f;
+		camera.near = minRadius;
+		cameraLookAtCenter();
+	}
+
 	void CameraController::cameraLookAtCenter()
 	{
-		camera.position = -camera.forward * radius;
+		camera.position = -camera.forward * radius + center;
 	}
 
 }

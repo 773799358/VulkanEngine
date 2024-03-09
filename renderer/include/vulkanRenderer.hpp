@@ -4,6 +4,7 @@
 #include "vulkanStruct.hpp"
 #include <array>
 #include <functional>
+#include <map>
 
 namespace VulkanEngine
 {
@@ -58,6 +59,20 @@ namespace VulkanEngine
             uint32_t miplevels,
             VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT);
 
+        void createTextureImage(
+            VkImage& image,
+            VkImageView& imageView,
+            VkDeviceMemory& imageMemory,
+            uint32_t width,
+            uint32_t height,
+            void* pixels,
+            //VkFormat format,      // 默认4通道 rgba32
+            uint32_t miplevels);
+
+        void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
+
+        void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+
         VkImageView createImageView(
             VkImage& image,
             VkFormat format,
@@ -65,6 +80,8 @@ namespace VulkanEngine
             VkImageViewType viewType,
             uint32_t layoutCount,
             uint32_t miplevels);
+
+        VkSampler getOrCreateMipmapSampler(uint32_t miplevles);
 
         void createBuffer(
             VkDeviceSize size,
@@ -173,5 +190,8 @@ namespace VulkanEngine
         VkSemaphore imageFinishedForPresentSemaphores[MAX_FRAMES_IN_FLIGHT];
         VkSemaphore imageAvailableForTextureCopySemaphores[MAX_FRAMES_IN_FLIGHT];
         VkFence isFrameInFlightFences[MAX_FRAMES_IN_FLIGHT];
+
+        // sampler
+        std::map<uint32_t, VkSampler> mipmapSamplerMap;
     };
 }

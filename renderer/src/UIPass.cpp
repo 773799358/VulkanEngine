@@ -1,9 +1,9 @@
 ﻿#include "UIPass.hpp"
 #include "macro.hpp"
 
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_vulkan.h"
-#include "imgui/imgui_impl_sdl2.h"
+#include "imgui.h"
+#include "backends/imgui_impl_vulkan.h"
+#include "backends/imgui_impl_sdl2.h"
 
 namespace VulkanEngine
 {
