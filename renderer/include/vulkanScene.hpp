@@ -9,6 +9,8 @@
 
 namespace VulkanEngine
 {
+	class VulkanRenderSceneData;
+
 	// 注意16字节对齐
 
 	struct VulkanResource
@@ -17,10 +19,16 @@ namespace VulkanEngine
 		VkDeviceMemory memory = VK_NULL_HANDLE;
 	};
 
-	struct UniformBufferObject
+	struct UniformBufferObjectVS
 	{
 		glm::mat4 view = glm::mat4(1.0f);
 		glm::mat4 proj = glm::mat4(1.0f);
+	};
+
+	struct UniformBufferObjectFS
+	{
+		glm::vec3 viewPos = glm::vec3(0.0f);
+		float paddingViewPos;
 	};
 
 	struct alignas(64) UniformBufferDynamicObject
@@ -73,7 +81,9 @@ namespace VulkanEngine
 		
 		//TODO:用统一属性和材质描述
 		//VulkanResource materialUniform;
-		//VkDescriptorSet descriptorSet;
+		VkDescriptorSet descriptorSet;
+
+		void createDescriptorSet(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData);
 	};
 
 	struct Node
@@ -138,7 +148,8 @@ namespace VulkanEngine
 
 		void clear();
 
-		VulkanDescriptor descriptor;
+		VulkanDescriptor uniformDescriptor;
+		VulkanDescriptor PBRMaterialDescriptor;
 
 		Node* rootNode = nullptr;
 		std::vector<Node*> nodes;
@@ -151,7 +162,8 @@ namespace VulkanEngine
 		CameraController cameraController;
 
 		VulkanResource uniformResource;
-		UniformBufferObject uniformBufferObject;
+		UniformBufferObjectVS uniformBufferVSObject;
+		UniformBufferObjectFS uniformBufferFSObject;
 
 		VulkanResource uniformDynamicResource;
 		std::vector<UniformBufferDynamicObject> uniformBufferDynamicObjects;
@@ -165,7 +177,9 @@ namespace VulkanEngine
 		void createIndexData(Mesh* mesh);
 
 		void createUniformBufferData();
-		void createDescriptorSet();
+		void createUniformDescriptorSet();
+
+		void createPBRDescriptorLayout();
 
 		Mesh* createCube();
 	};

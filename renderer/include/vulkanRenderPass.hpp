@@ -3,6 +3,7 @@
 #include "vulkan/vulkan.h"
 #include <vector>
 #include "vulkanRenderer.hpp"
+#include "vulkanScene.hpp"
 
 namespace VulkanEngine
 {
@@ -43,7 +44,7 @@ namespace VulkanEngine
 		std::vector<VulkanRenderPipeline> renderPipelines;
 		std::vector<VulkanFrameBuffer> frameBuffers;
 
-		virtual void init(VulkanRenderer* vulkanRender);
+		virtual void init(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData);
 		virtual void postInit() = 0;
 
 		virtual void drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize) = 0;
@@ -52,7 +53,7 @@ namespace VulkanEngine
 
 	protected:
 		VulkanRenderer* vulkanRender = nullptr;
-		VkDescriptorSetLayout descriptorSetLayout;
+		VulkanRenderSceneData* sceneData = nullptr;
 	};
 	
 }

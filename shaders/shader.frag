@@ -1,49 +1,180 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-//layout(binding = 1) uniform UniformBufferObject
-//{
+#define PI 3.1416
+
+layout(set = 0, binding = 1) uniform UniformBufferObject
+{
 //    vec3 baseLightColor;
 //    float ambientStrength;
 //    vec3 lightPos;
 //    float specularStrength;
-//    vec3 viewPos;
-//} ubo;
+    vec3 viewPos;
+    float paddingViewPos;
+} ubo;
 
-layout(location = 0) in vec3 fragColor;
-//layout(location = 1) in vec3 fragNormal;
-//layout(location = 2) in vec2 fragTexCoord;
-//layout(location = 3) in vec3 fragPos;
+layout(location = 0) in highp vec3 inColor;
+layout(location = 1) in highp vec3 inNormal;
+layout(location = 2) in highp vec2 inTexCoord;
+layout(location = 3) in highp vec3 inWorldPos;
+layout(location = 4) in highp vec3 inTangent;
 
-//layout(binding = 2) uniform sampler2D texSampler;
+layout(set = 1, binding = 0) uniform sampler2D baseColorTextureSampler;
+layout(set = 1, binding = 1) uniform sampler2D normalTextureSampler;
+layout(set = 1, binding = 2) uniform sampler2D metallicRoughnessTextureSampler;
 
 // layout(location = 0)修饰符明确framebuffer的索引
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out highp vec4 outColor;
+
+// Normal Distribution function --------------------------------------
+highp float D_GGX(highp float dotNH, highp float roughness)
+{
+    highp float alpha  = roughness * roughness;
+    highp float alpha2 = alpha * alpha;
+    highp float denom  = dotNH * dotNH * (alpha2 - 1.0) + 1.0;
+    return (alpha2) / (PI * denom * denom);
+}
+
+// Geometric Shadowing function --------------------------------------
+highp float G_SchlicksmithGGX(highp float dotNL, highp float dotNV, highp float roughness)
+{
+    highp float r  = (roughness + 1.0);
+    highp float k  = (r * r) / 8.0;
+    highp float GL = dotNL / (dotNL * (1.0 - k) + k);
+    highp float GV = dotNV / (dotNV * (1.0 - k) + k);
+    return GL * GV;
+}
+
+// Fresnel function ----------------------------------------------------
+highp float Pow5(highp float x)
+{
+    return (x * x * x * x * x);
+}
+
+highp vec3 F_Schlick(highp float cosTheta, highp vec3 F0) 
+{ 
+    return F0 + (1.0 - F0) * Pow5(1.0 - cosTheta); 
+    }
+
+highp vec3 F_SchlickR(highp float cosTheta, highp vec3 F0, highp float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * Pow5(1.0 - cosTheta);
+}
+
+// Specular and diffuse BRDF composition --------------------------------------------
+highp vec3 BRDF(highp vec3  L,
+                highp vec3  V,
+                highp vec3  N,
+                highp vec3  F0,
+                highp vec3  basecolor,
+                highp float metallic,
+                highp float roughness)
+{
+    // Precalculate vectors and dot products
+    highp vec3  H     = normalize(V + L);
+    highp float dotNV = clamp(dot(N, V), 0.0, 1.0);
+    highp float dotNL = clamp(dot(N, L), 0.0, 1.0);
+    highp float dotLH = clamp(dot(L, H), 0.0, 1.0);
+    highp float dotNH = clamp(dot(N, H), 0.0, 1.0);
+
+    // Light color fixed
+    // vec3 lightColor = vec3(1.0);
+
+    highp vec3 color = vec3(0.0);
+
+    highp float rroughness = max(0.05, roughness);
+    // D = Normal distribution (Distribution of the microfacets)
+    highp float D = D_GGX(dotNH, rroughness);
+    // G = Geometric shadowing term (Microfacets shadowing)
+    highp float G = G_SchlicksmithGGX(dotNL, dotNV, rroughness);
+    // F = Fresnel factor (Reflectance depending on angle of incidence)
+    highp vec3 F = F_Schlick(dotNV, F0);
+
+    highp vec3 spec = D * F * G / (4.0 * dotNL * dotNV + 0.001);
+    highp vec3 kD   = (vec3(1.0) - F) * (1.0 - metallic);
+
+    color += (kD * basecolor / PI + (1.0 - kD) * spec);
+    // color += (kD * basecolor / PI + spec) * dotNL;
+    // color += (kD * basecolor / PI + spec) * dotNL * lightColor;
+
+    return color;
+}
+
+highp vec2 ndcxy_to_uv(highp vec2 ndcxy) { return ndcxy * vec2(0.5, 0.5) + vec2(0.5, 0.5); }
+
+highp vec2 uv_to_ndcxy(highp vec2 uv) { return uv * vec2(2.0, 2.0) + vec2(-1.0, -1.0); }
+
+highp vec3 calculateNormal()
+{
+    highp vec3 tangentNormal = texture(normalTextureSampler, inTexCoord).xyz * 2.0 - 1.0;
+
+    highp vec3 N = normalize(inNormal);
+    highp vec3 T = normalize(inTangent.xyz);
+    highp vec3 B = normalize(cross(N, T));
+
+    highp mat3 TBN = mat3(T, B, N);
+    return normalize(TBN * tangentNormal);
+}
 
 void main() 
 {
-    //vec3 ambient = vec3(ubo.ambientStrength);
-//
-    //vec3 lightDir = normalize(ubo.lightPos - fragPos);
-    ////vec3 lightDir = fragLightPos;
-//
-    //vec3 normal = normalize(fragNormal);
-    //
-    //vec3 color = vec3(1.0);
-    ////color = texture(texSampler, fragTexCoord).rgb;
-    //vec3 diffuse = max(dot(normal, lightDir), 0.0) * color;
-//
-    //vec3 viewDir = normalize(ubo.viewPos - fragPos);
-    //vec3 halfDir = normalize(lightDir + viewDir);
-//
-    //float spec = pow(max(dot(halfDir, normal), 0.0), 8);
-//
-    //vec3 result = diffuse * ubo.baseLightColor;
-    //vec3 specular = spec * vec3(ubo.specularStrength);
-//
-    //result = result + specular + ambient;
+    highp float ambientStrength = 0.5;
+    highp vec3 ambientLight = vec3(ambientStrength, ambientStrength, ambientStrength);
+    highp vec3 directionalLightDirection = vec3(1.0, 1.0, 1.0);
+    highp vec3 directionalLightColor = vec3(2.0, 2.0, 2.0);
+    highp float metallicFactor = 1.0;
+    highp float roughnessFactor = 1.0;
 
-    vec3 result = fragColor;
+    highp vec3  N                   = calculateNormal();
+    highp vec3  basecolor           = texture(baseColorTextureSampler, inTexCoord).xyz;
+    highp float metallic            = texture(metallicRoughnessTextureSampler, inTexCoord).z * metallicFactor;
+    highp float dielectricSpecular  = 0.04;
+    highp float roughness           = texture(metallicRoughnessTextureSampler, inTexCoord).y * roughnessFactor;
+
+    highp vec3 V = normalize(ubo.viewPos - inWorldPos);
+    highp vec3 R = reflect(-V, N);
+
+    highp vec3 originSamplecubeN = vec3(N.x, N.z, N.y);
+    highp vec3 originSamplecubeR = vec3(R.x, R.z, R.y);
+
+    highp vec3 F0 = mix(vec3(dielectricSpecular, dielectricSpecular, dielectricSpecular), basecolor, metallic);
+
+    // direct light specular and diffuse BRDF contribution
+    highp vec3 Lo = vec3(0.0, 0.0, 0.0);
+
+    // direct ambient contribution
+    highp vec3 La = vec3(0.0f, 0.0f, 0.0f);
+    La            = basecolor * ambientLight;
+
+    // directional light
+    {
+        highp vec3  L   = normalize(directionalLightDirection);
+        highp float NoL = min(dot(N, L), 1.0);
+
+        if (NoL > 0.0)
+        {
+            //highp float shadow;
+            //{
+            //    highp vec4 position_clip = directional_light_proj_view * vec4(in_world_position, 1.0);
+            //    highp vec3 position_ndc  = position_clip.xyz / position_clip.w;
+
+            //    highp vec2 uv = ndcxy_to_uv(position_ndc.xy);
+
+            //    highp float closest_depth = texture(directional_light_shadow, uv).r + 0.000075;
+            //    highp float current_depth = position_ndc.z;
+
+            //    shadow = (closest_depth >= current_depth) ? 1.0f : -1.0f;
+            //}
+
+            //if (shadow > 0.0f)
+            {
+                highp vec3 En = directionalLightColor * NoL;
+                Lo += BRDF(L, V, N, F0, basecolor, metallic, roughness) * En;
+            }
+        }
+    }
+
+    highp vec3 result = Lo + La;
 
     outColor = vec4(result, 1.0);
 }

@@ -4,13 +4,14 @@
 #include <vector>
 #include "vulkanRenderer.hpp"
 #include "vulkanRenderPass.hpp"
+#include "vulkanScene.hpp"
 
 namespace VulkanEngine
 {
 	class MainRenderPass : public VulkanRenderPass
 	{
 	public:
-		void init(VulkanRenderer* vulkanRender) override;
+		void init(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData) override;
 		void postInit() override;
 
 		void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) override;
@@ -20,7 +21,6 @@ namespace VulkanEngine
 
 	private:
 		void setupRenderPass();
-		void setupDescriptorSetLayout();
 		void setupPipelines();
 		void setupFrameBuffers();
 

@@ -27,7 +27,7 @@ namespace VulkanEngine
         sceneData->init(vulkanRenderer);
 
         //std::string modelPath = basePath + "/resources/models/post_apocalyptic_telecaster_-_final_gap/scene.gltf";
-        std::string modelPath = basePath + "/resources/models/dae_-_bilora_bella_46_camera_-_game_ready_asset.glb";
+        std::string modelPath = basePath + "/resources/models/dae_-_bilora_bella_46_camera_-_game_ready_asset.glb"; 
         //std::string modelPath = basePath + "/resources/models/reflection_scene.gltf";
         Model model(modelPath, sceneData);
 
@@ -41,10 +41,10 @@ namespace VulkanEngine
         sceneData->setupRenderData();
 
         mainRenderPass = new MainRenderPass();
-        mainRenderPass->init(vulkanRenderer);
+        mainRenderPass->init(vulkanRenderer, sceneData);
 
         UIRenderPass = new UIPass();
-        UIRenderPass->init(vulkanRenderer, mainRenderPass);
+        UIRenderPass->init(vulkanRenderer, mainRenderPass, sceneData);
 
         sceneData->lookAtSceneCenter();
 
@@ -87,7 +87,9 @@ namespace VulkanEngine
         for (size_t i = 0; i < sceneData->meshes.size(); i++)
         {
             uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
-            vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, 1, &sceneData->descriptor.descriptorSet[0], 1, &dynamicOffset);
+
+            VkDescriptorSet sets[2] = { sceneData->uniformDescriptor.descriptorSet[0] , sceneData->meshes[i]->material->descriptorSet };
+            vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, 2, sets, 1, &dynamicOffset);
 
             VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
             VkDeviceSize offsets[] = { 0 };

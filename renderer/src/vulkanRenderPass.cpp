@@ -4,9 +4,10 @@
 
 namespace VulkanEngine
 {
-	void VulkanRenderPass::init(VulkanRenderer* vulkanRender)
+	void VulkanRenderPass::init(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData)
 	{
 		this->vulkanRender = vulkanRender;
+		this->sceneData = sceneData;
 	}
 
 }

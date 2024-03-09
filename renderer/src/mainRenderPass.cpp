@@ -5,11 +5,10 @@
 
 namespace VulkanEngine
 {
-	void MainRenderPass::init(VulkanRenderer* vulkanRender)
+	void MainRenderPass::init(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData)
 	{
-		VulkanRenderPass::init(vulkanRender);
+		VulkanRenderPass::init(vulkanRender, sceneData);
 		setupRenderPass();
-		setupDescriptorSetLayout();
 		setupPipelines();
 		setupFrameBuffers();
 	}
@@ -26,7 +25,7 @@ namespace VulkanEngine
 	void MainRenderPass::draw(VkCommandBuffer commandBuffer, uint32_t vertexSize)
 	{
 		vkCmdDraw(commandBuffer, vertexSize, 1, 0, 0);
-	}
+	} 
 
 	void MainRenderPass::recreate()
 	{
@@ -63,8 +62,6 @@ namespace VulkanEngine
 		vkDestroyImage(vulkanRender->device, colorAttachment.image, nullptr);
 		vkDestroyImageView(vulkanRender->device, colorAttachment.imageView, nullptr);
 		vkFreeMemory(vulkanRender->device, colorAttachment.memory, nullptr);
-
-		vkDestroyDescriptorSetLayout(vulkanRender->device, descriptorSetLayout, nullptr);
 
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
 		{
@@ -155,35 +152,6 @@ namespace VulkanEngine
 		renderPassInfo.pDependencies = &dependency;
 
 		VK_CHECK_RESULT(vkCreateRenderPass(vulkanRender->device, &renderPassInfo, nullptr, &renderPass));
-	}
-
-	void MainRenderPass::setupDescriptorSetLayout()
-	{
-		VkDescriptorSetLayoutBinding uboLayoutBinding[2] = {};
-		uboLayoutBinding[0].binding = 0;
-		uboLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		uboLayoutBinding[0].descriptorCount = 1;
-		uboLayoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;		// 仅在顶点着色器访问
-		uboLayoutBinding[0].pImmutableSamplers = nullptr;
-
-		uboLayoutBinding[1].binding = 1;
-		uboLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-		uboLayoutBinding[1].descriptorCount = 1;
-		uboLayoutBinding[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-		uboLayoutBinding[1].pImmutableSamplers = nullptr;
-
-		//uboLayoutBinding[2].binding = 2;
-		//uboLayoutBinding[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		//uboLayoutBinding[2].descriptorCount = 1;
-		//uboLayoutBinding[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;		// 仅在片段着色器访问
-		//uboLayoutBinding[2].pImmutableSamplers = nullptr
-
-		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = sizeof(uboLayoutBinding) / sizeof(uboLayoutBinding[0]);
-		layoutInfo.pBindings = uboLayoutBinding;
-
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRender->device, &layoutInfo, nullptr, &descriptorSetLayout));
 	}
 
 	void MainRenderPass::setupPipelines()
@@ -318,10 +286,12 @@ namespace VulkanEngine
 		dynamicStateInfo.pDynamicStates = dynamicStates;
 
 		// 9.管线布局
+		VkDescriptorSetLayout descriptorSetLayout[2] = { sceneData->uniformDescriptor.layout, sceneData->PBRMaterialDescriptor.layout };
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+		pipelineLayoutInfo.setLayoutCount = 2;
+		pipelineLayoutInfo.pSetLayouts = descriptorSetLayout;
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		pipelineLayoutInfo.pPushConstantRanges = nullptr;
 

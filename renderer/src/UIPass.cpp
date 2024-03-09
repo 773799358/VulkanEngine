@@ -8,9 +8,9 @@
 namespace VulkanEngine
 {
 
-	void UIPass::init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass)
+	void UIPass::init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass, VulkanRenderSceneData* sceneData)
 	{
-		VulkanRenderPass::init(vulkanRender);
+		VulkanRenderPass::init(vulkanRender, sceneData);
 
 		ImGui::CreateContext();
 		ImGui_ImplSDL2_InitForVulkan(vulkanRender->window);

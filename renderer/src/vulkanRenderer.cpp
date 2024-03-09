@@ -1192,7 +1192,7 @@ namespace VulkanEngine
         vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
         if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT))
         {
-            throw std::runtime_error("texture image format does not support linear blitting!");
+            LOG_ERROR("texture image format does not support linear blitting!");
         }
 
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
@@ -1349,6 +1349,8 @@ namespace VulkanEngine
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = static_cast<float>(0);
         samplerInfo.maxLod = static_cast<float>(miplevles);
+
+        VK_CHECK_RESULT(vkCreateSampler(device, &samplerInfo, nullptr, &sampler));
 
         mipmapSamplerMap.insert(std::make_pair(miplevles, sampler));
         return sampler;

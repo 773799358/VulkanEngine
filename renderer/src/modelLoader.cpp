@@ -113,7 +113,7 @@ namespace VulkanEngine
 	void Model::loadModel(const std::string& path)
 	{
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices);
+		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
@@ -218,10 +218,19 @@ namespace VulkanEngine
 					vertex.tangent = { 0, 0, 0 };
 				}
 
-				// TODO: 顶点色基本自己的测试模型才会用到
-				vertex.color.x = 1.0f;
-				vertex.color.y = 1.0f;
-				vertex.color.z = 1.0f;
+				// TODO:只处理一套color，且不处理alpha
+				if (aiMesh->GetNumColorChannels() > 0)
+				{
+					vertex.color.x = aiMesh->mColors[0]->r;
+					vertex.color.y = aiMesh->mColors[0]->g;
+					vertex.color.z = aiMesh->mColors[0]->b;
+				}
+				else
+				{
+					vertex.color.x = 1.0f;
+					vertex.color.y = 1.0f;
+					vertex.color.z = 1.0f;
+				}
 			}
 
 			for (size_t i = 0; i < aiMesh->mNumFaces; i++)
