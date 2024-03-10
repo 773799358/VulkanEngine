@@ -7,12 +7,11 @@
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
-//    vec3 baseLightColor;
-//    float ambientStrength;
-//    vec3 lightPos;
-//    float specularStrength;
     vec3 viewPos;
-    float paddingViewPos;
+	float ambientStrength;
+	vec3 directionalLightPos;
+	float padding;
+	vec3 directionalLightColor;
 } ubo;
 
 layout(location = 0) in highp vec3 inColor;
@@ -61,25 +60,24 @@ highp vec3 calculateNormal()
 
 void main() 
 {
-    vec3 ambient = vec3(0.05);
+    vec3 ambient = vec3(ubo.ambientStrength);
 
     //vec3 lightDir = normalize(ubo.lightPos - fragPos);
-    vec3 lightDir = normalize(vec3(1.0));
-    //vec3 lightDir = fragLightPos;
+    vec3 lightDir = normalize(ubo.directionalLightPos);
 
     vec3 normal = calculateNormal();
     
-    vec3 color = vec3(inColor);
-    color = texture(baseColorTextureSampler, inTexCoord).rgb;
-    vec3 diffuse = max(dot(normal, lightDir), 0.0) * color;
+    vec3 baseColor = vec3(inColor);
+    baseColor = texture(baseColorTextureSampler, inTexCoord).rgb;
+    vec3 diffuse = max(dot(normal, lightDir), 0.0) * baseColor;
 
     vec3 viewDir = normalize(ubo.viewPos - inWorldPos);
     vec3 halfDir = normalize(lightDir + viewDir);
 
-    float spec = pow(max(dot(halfDir, normal), 0.0), 3);
+    float spec = pow(max(dot(halfDir, normal), 0.0), 5);
 
-    vec3 result = diffuse * vec3(0.3);
-    vec3 specular = spec * vec3(0.1);
+    vec3 result = diffuse * vec3(0.5);
+    vec3 specular = spec * vec3(0.2);
 
     result = result + specular + ambient;
 

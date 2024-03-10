@@ -7,12 +7,11 @@
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
-//    vec3 baseLightColor;
-//    float ambientStrength;
-//    vec3 lightPos;
-//    float specularStrength;
     vec3 viewPos;
-    float paddingViewPos;
+	float ambientStrength;
+	vec3 directionalLightPos;
+	float padding;
+	vec3 directionalLightColor;
 } ubo;
 
 layout(location = 0) in highp vec3 inColor;
@@ -209,10 +208,10 @@ highp vec3 Uncharted2Tonemap(highp vec3 x)
 
 void main() 
 {
-    highp float ambientStrength = 0.05;
+    highp float ambientStrength = ubo.ambientStrength;
     highp vec3 ambientLight = vec3(ambientStrength);
-    highp vec3 directionalLightDirection = vec3(1.0);
-    highp vec3 directionalLightColor = vec3(0.5);
+    highp vec3 directionalLightDirection = normalize(ubo.directionalLightPos);
+    highp vec3 directionalLightColor = vec3(ubo.directionalLightColor);
 
     highp vec3  N       = calculateNormal();
     if(length(N) < 0.00001 || isnan(N.x))

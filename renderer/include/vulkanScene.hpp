@@ -28,8 +28,10 @@ namespace VulkanEngine
 	struct UniformBufferObjectFS
 	{
 		glm::vec3 viewPos = glm::vec3(0.0f);
-		float paddingViewPos;
-		glm::vec3 directional = glm::vec3(1.0f);
+		float ambientStrength = 0.02f;
+		glm::vec3 directionalLightPos = glm::vec3(1.0f);
+		float padding;
+		glm::vec3 directionalLightColor = glm::vec3(1.0f);
 	};
 
 	struct alignas(64) UniformBufferDynamicObject
