@@ -164,6 +164,7 @@ namespace VulkanEngine
 		uniformBufferVSObject.view = cameraController.camera.getViewMatrix();
 
 		uniformBufferFSObject.viewPos = cameraController.camera.position;
+		uniformBufferFSObject.directionalLightPos = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1.0f);
 
 		std::vector<UniformBufferDynamicObject> transforms;
 		transforms.resize(meshes.size());
