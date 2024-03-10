@@ -1,7 +1,7 @@
 # VulkanEngine
 
 仅用于学习使用，有问题请邮件联系：773799358@qq.com
-仅支持windows，因为没有苹果电脑和linux环境，后续会对其他平台进行支持，需要安装vulkan的时候需勾选SDL2，直接执行build_window.bat即可
+仅支持windows，因为没有苹果电脑和linux环境，后续会对其他平台进行支持，需要安装vulkan的时候需勾选SDL2（安装包已放入项目），直接执行build_window.bat即可
 然后选择test为启动项，运行
 
 ### 未来可能要实现和优化的部分以及建议笔记：
