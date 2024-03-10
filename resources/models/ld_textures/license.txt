@@ -1,0 +1,11 @@
+Model Information:
+* title:	LD Textures
+* source:	https://sketchfab.com/3d-models/ld-textures-d35bafca68fa4b7781f2e8afb6fbba72
+* author:	soidev (https://sketchfab.com/soidev)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "LD Textures" (https://sketchfab.com/3d-models/ld-textures-d35bafca68fa4b7781f2e8afb6fbba72) by soidev (https://sketchfab.com/soidev) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

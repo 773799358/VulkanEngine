@@ -942,6 +942,8 @@ namespace VulkanEngine
 
     VkPresentModeKHR VulkanRenderer::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
     {
+        // TODO:锁帧
+        return VK_PRESENT_MODE_FIFO_KHR;
         // 这里不考虑垂直同步，优先选用mailBox
         for (const auto& availablePresentMode : availablePresentModes)
         {

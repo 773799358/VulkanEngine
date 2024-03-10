@@ -128,7 +128,7 @@ namespace VulkanEngine
 				//camera.zoom += 45.0f * velocity;
 				//camera.zoom = glm::clamp(camera.zoom, 1.0f, 180.0f);
 			}
-			radius -= event->wheel.y * minRadius;
+			radius -= event->wheel.y * minRadius / 3.0f;
 			radius = glm::max(radius, minRadius / 2.0f);
 		}
 
