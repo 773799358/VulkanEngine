@@ -134,7 +134,7 @@ highp vec3 Uncharted2Tonemap(highp vec3 x)
 
 void main() 
 {
-    highp float ambientStrength = 0.2;
+    highp float ambientStrength = 0.05;
     highp vec3 ambientLight = vec3(ambientStrength, ambientStrength, ambientStrength);
     highp vec3 directionalLightDirection = vec3(1.0, 1.0, 1.0);
     highp vec3 directionalLightColor = vec3(1.0);

@@ -113,7 +113,7 @@ namespace VulkanEngine
 	void Model::loadModel(const std::string& path)
 	{
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs | aiProcess_FixInfacingNormals | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
+		const aiScene* scene = importer.ReadFile(path, aiProcess_FixInfacingNormals | aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs | aiProcess_FixInfacingNormals | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
@@ -265,7 +265,7 @@ namespace VulkanEngine
 	{
 		auto getTexture = [&](aiMaterial* aiMat, aiTextureType type)->std::vector<std::string>
 		{
-			std::vector<std::string> textures;
+			std::vector<std::string> tempTextures;
 			for (size_t i = 0; i < aiMat->GetTextureCount(type); i++)
 			{
 				aiString str;
@@ -275,7 +275,7 @@ namespace VulkanEngine
 					const aiTexture* texture = scene->GetEmbeddedTexture(str.C_Str());
 					if (texture == nullptr)
 					{
-						textures.push_back(str.C_Str());
+						tempTextures.push_back(str.C_Str());
 					}
 					else
 					{
@@ -291,26 +291,26 @@ namespace VulkanEngine
 							std::string texFileName = "diffuse." + ext;
 							std::string outPath = texturePath + texFileName;
 							VulkanUtil::saveFile(outPath, buffer);
-							textures.push_back(fileName + '/' + texFileName);
+							tempTextures.push_back(fileName + '/' + texFileName);
 						}
 						if (type == aiTextureType_NORMALS)
 						{
 							std::string texFileName = "normal." + ext;
 							std::string outPath = texturePath + texFileName;
 							VulkanUtil::saveFile(outPath, buffer);
-							textures.push_back(fileName + '/' + texFileName);
+							tempTextures.push_back(fileName + '/' + texFileName);
 						}
 						if (type == aiTextureType_DIFFUSE_ROUGHNESS)
 						{
 							std::string texFileName = "mr." + ext;
 							std::string outPath = texturePath + texFileName;
 							VulkanUtil::saveFile(outPath, buffer);
-							textures.push_back(fileName + '/' + texFileName);
+							tempTextures.push_back(fileName + '/' + texFileName);
 						}
 					}
 				}
 			}
-			return textures;
+			return tempTextures;
 		};
 
 		std::vector<std::string> diffuse = getTexture(aiMat, aiTextureType_DIFFUSE);

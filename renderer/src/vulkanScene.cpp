@@ -169,8 +169,8 @@ namespace VulkanEngine
 		transforms.resize(meshes.size());
 		for (int i = 0; i < meshes.size(); i++)
 		{
-			transforms[i].model = meshes[i]->node->worldTransform;
-			//transforms[i].model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * transforms[i].model;
+			transforms[i].model =  rotate * meshes[i]->node->worldTransform;
+			//transforms[i].model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * transforms[i].model;
 		}
 
 		{

@@ -209,7 +209,7 @@ highp vec3 Uncharted2Tonemap(highp vec3 x)
 
 void main() 
 {
-    highp float ambientStrength = 0.2;
+    highp float ambientStrength = 0.05;
     highp vec3 ambientLight = vec3(ambientStrength);
     highp vec3 directionalLightDirection = vec3(1.0);
     highp vec3 directionalLightColor = vec3(0.5);
@@ -274,7 +274,7 @@ void main()
     // Gamma correct
     // TODO: select the VK_FORMAT_B8G8R8A8_SRGB surface format,
     // there is no need to do gamma correction in the fragment shader
-    //color = vec3(pow(color.x, 1.0 / 2.2), pow(color.y, 1.0 / 2.2), pow(color.z, 1.0 / 2.2));
+    color = vec3(pow(color.x, 1.0 / 2.2), pow(color.y, 1.0 / 2.2), pow(color.z, 1.0 / 2.2));
 
     outColor = vec4(color, 1.0);
 }

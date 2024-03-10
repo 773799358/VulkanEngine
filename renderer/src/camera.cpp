@@ -129,7 +129,7 @@ namespace VulkanEngine
 				//camera.zoom = glm::clamp(camera.zoom, 1.0f, 180.0f);
 			}
 			radius -= event->wheel.y * minRadius;
-			radius = glm::max(radius, minRadius);
+			radius = glm::max(radius, minRadius / 2.0f);
 		}
 
 		if (event->type == SDL_KEYDOWN || (event->type == SDL_MOUSEMOTION && event->button.button == SDL_BUTTON_LEFT) || event->type == SDL_MOUSEWHEEL)
@@ -151,6 +151,10 @@ namespace VulkanEngine
 		this->radius = radius;
 		minRadius = radius / 10.0f;
 		camera.near = minRadius;
+		if (minRadius * 15 > camera.far)
+		{
+			camera.far = minRadius * 15;
+		}
 		cameraLookAtCenter();
 	}
 

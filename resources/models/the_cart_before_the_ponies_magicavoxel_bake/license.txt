@@ -1,0 +1,11 @@
+Model Information:
+* title:	The Cart Before the Ponies (MagicaVoxel Bake)
+* source:	https://sketchfab.com/3d-models/the-cart-before-the-ponies-magicavoxel-bake-ddcc0debe1734789a5f0f4946cb3a12b
+* author:	8vit (https://sketchfab.com/YVT)
+
+Model License:
+* license type:	CC-BY-SA-4.0 (http://creativecommons.org/licenses/by-sa/4.0/)
+* requirements:	Author must be credited. Modified versions must have the same license. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "The Cart Before the Ponies (MagicaVoxel Bake)" (https://sketchfab.com/3d-models/the-cart-before-the-ponies-magicavoxel-bake-ddcc0debe1734789a5f0f4946cb3a12b) by 8vit (https://sketchfab.com/YVT) licensed under CC-BY-SA-4.0 (http://creativecommons.org/licenses/by-sa/4.0/)

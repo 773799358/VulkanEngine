@@ -61,7 +61,7 @@ highp vec3 calculateNormal()
 
 void main() 
 {
-    vec3 ambient = vec3(0.1);
+    vec3 ambient = vec3(0.05);
 
     //vec3 lightDir = normalize(ubo.lightPos - fragPos);
     vec3 lightDir = normalize(vec3(1.0));
@@ -76,17 +76,17 @@ void main()
     vec3 viewDir = normalize(ubo.viewPos - inWorldPos);
     vec3 halfDir = normalize(lightDir + viewDir);
 
-    float spec = pow(max(dot(halfDir, normal), 0.0), 5);
+    float spec = pow(max(dot(halfDir, normal), 0.0), 3);
 
-    vec3 result = diffuse * vec3(1.0);
-    vec3 specular = spec * vec3(0.5);
+    vec3 result = diffuse * vec3(0.3);
+    vec3 specular = spec * vec3(0.1);
 
     result = result + specular + ambient;
 
     highp vec3 color = result;
     // tone mapping
-    color = Uncharted2Tonemap(color * 4.5f);
-    color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
+    //color = Uncharted2Tonemap(color * 4.5f);
+    //color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
 
     outColor = vec4(result, 1.0);
 }

@@ -27,15 +27,21 @@ namespace VulkanEngine
         sceneData->init(vulkanRenderer);
 
         //sceneData->shaderName = "PBR";
-        //sceneData->shaderName = "DisneyPBR";
-        sceneData->shaderName = "blinn";
-        
-        std::string modelPath = basePath + "/resources/models/post_apocalyptic_telecaster_-_final_gap/scene.gltf";
-        //std::string modelPath = basePath + "/resources/models/dae_-_bilora_bella_46_camera_-_game_ready_asset.glb"; 
-        //std::string modelPath = basePath + "/resources/models/reflection_scene.gltf";
-        //std::string modelPath = basePath + "/resources/models/the_discobolus_of_myron/scene.gltf";
-        //std::string modelPath = basePath + "/resources/models/teapot.gltf";
-        //std::string modelPath = basePath + "/resources/models/m725_military_ambulance/scene.gltf";
+        sceneData->shaderName = "DisneyPBR";
+        //sceneData->shaderName = "blinn";
+
+        std::string modelPath;
+
+        //modelPath = basePath + "/resources/models/post_apocalyptic_telecaster_-_final_gap/scene.gltf";
+        //modelPath = basePath + "/resources/models/dae_-_bilora_bella_46_camera_-_game_ready_asset.glb"; 
+        //modelPath = basePath + "/resources/models/reflection_scene.gltf";
+        //modelPath = basePath + "/resources/models/the_discobolus_of_myron/scene.gltf";
+        //modelPath = basePath + "/resources/models/teapot.gltf";
+        //modelPath = basePath + "/resources/models/10_2k_space_pbr_textures_-_free/scene.gltf";
+        {
+            modelPath = basePath + "/resources/models/awesome_mix_guardians_of_the_galaxy/scene.gltf";
+            sceneData->rotate = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
         
         Model model(modelPath, sceneData);
          

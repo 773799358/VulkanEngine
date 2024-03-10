@@ -29,6 +29,7 @@ namespace VulkanEngine
 	{
 		glm::vec3 viewPos = glm::vec3(0.0f);
 		float paddingViewPos;
+		glm::vec3 directional = glm::vec3(1.0f);
 	};
 
 	struct alignas(64) UniformBufferDynamicObject
@@ -171,6 +172,8 @@ namespace VulkanEngine
 
 		VulkanResource uniformDynamicResource;
 		std::vector<UniformBufferDynamicObject> uniformBufferDynamicObjects;
+
+		glm::mat4 rotate = glm::mat4(1.0);
 
 	private:
 		VulkanRenderer* vulkanRenderer = nullptr;

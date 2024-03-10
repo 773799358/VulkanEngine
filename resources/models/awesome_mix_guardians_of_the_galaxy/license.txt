@@ -1,0 +1,11 @@
+Model Information:
+* title:	Awesome Mix Guardians of the Galaxy
+* source:	https://sketchfab.com/3d-models/awesome-mix-guardians-of-the-galaxy-69f902be71564c39bd56c7a885e3426c
+* author:	rommalart (https://sketchfab.com/rommalart)
+
+Model License:
+* license type:	CC-BY-NC-ND-4.0 (http://creativecommons.org/licenses/by-nc-nd/4.0/)
+* requirements:	Author must be credited. No commercial use. Modified versions can not be distributed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Awesome Mix Guardians of the Galaxy" (https://sketchfab.com/3d-models/awesome-mix-guardians-of-the-galaxy-69f902be71564c39bd56c7a885e3426c) by rommalart (https://sketchfab.com/rommalart) licensed under CC-BY-NC-ND-4.0 (http://creativecommons.org/licenses/by-nc-nd/4.0/)
