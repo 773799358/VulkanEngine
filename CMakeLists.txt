@@ -6,8 +6,10 @@ project(VulkanEngine LANGUAGES CXX DESCRIPTION "VULKAN_ENGINE")
 find_program(GLSLC_PROGRAM glslc REQUIRED)  # 找到可执行文件
 
 message(STATUS "run glslc to compile shaders ...")
-execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/shader.vert -o ${CMAKE_SOURCE_DIR}/spvs/vert.spv)
-execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/shader.frag -o ${CMAKE_SOURCE_DIR}/spvs/frag.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/vs.vert -o ${CMAKE_SOURCE_DIR}/spvs/vs.vert.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/PBR.frag -o ${CMAKE_SOURCE_DIR}/spvs/PBR.frag.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/blinn.frag -o ${CMAKE_SOURCE_DIR}/spvs/blinn.frag.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/DisneyPBR.frag -o ${CMAKE_SOURCE_DIR}/spvs/DisneyPBR.frag.spv)
 message(STATUS "compile shader OK")
 
 include(cmake/FindVulkan.cmake)

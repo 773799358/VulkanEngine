@@ -159,12 +159,8 @@ namespace VulkanEngine
 		renderPipelines.resize(1);
 
 		// 配置一次subpass的状态，DX内对应PipelineStateObject
-		std::string shaderDir = vulkanRender->basePath + "spvs/";
-
-		std::string vert = shaderDir + "vert.spv";
-		auto vertShaderCode = VulkanUtil::readFile(vert);
-		std::string frag = shaderDir + "frag.spv";
-		auto fragShaderCode = VulkanUtil::readFile(frag);
+		auto vertShaderCode = VulkanUtil::readFile(sceneData->shaderVSFliePath);
+		auto fragShaderCode = VulkanUtil::readFile(sceneData->shaderFSFilePath);
 
 		// shaderModule只是字节码的容器，仅在渲染管线处理过程中需要，设置完就可以销毁
 		VkShaderModule vertShaderModule = vulkanRender->createShaderModule(vertShaderCode);

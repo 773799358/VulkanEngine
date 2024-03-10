@@ -26,11 +26,19 @@ namespace VulkanEngine
         sceneData = new VulkanRenderSceneData();
         sceneData->init(vulkanRenderer);
 
-        //std::string modelPath = basePath + "/resources/models/post_apocalyptic_telecaster_-_final_gap/scene.gltf";
-        std::string modelPath = basePath + "/resources/models/dae_-_bilora_bella_46_camera_-_game_ready_asset.glb"; 
+        //sceneData->shaderName = "PBR";
+        //sceneData->shaderName = "DisneyPBR";
+        sceneData->shaderName = "blinn";
+        
+        std::string modelPath = basePath + "/resources/models/post_apocalyptic_telecaster_-_final_gap/scene.gltf";
+        //std::string modelPath = basePath + "/resources/models/dae_-_bilora_bella_46_camera_-_game_ready_asset.glb"; 
         //std::string modelPath = basePath + "/resources/models/reflection_scene.gltf";
+        //std::string modelPath = basePath + "/resources/models/the_discobolus_of_myron/scene.gltf";
+        //std::string modelPath = basePath + "/resources/models/teapot.gltf";
+        //std::string modelPath = basePath + "/resources/models/m725_military_ambulance/scene.gltf";
+        
         Model model(modelPath, sceneData);
-
+         
         //for (int i = 0; i < 2; i++)
         //{
         //    Mesh* cube = sceneData->createCube();

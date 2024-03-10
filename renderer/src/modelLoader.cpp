@@ -113,7 +113,7 @@ namespace VulkanEngine
 	void Model::loadModel(const std::string& path)
 	{
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs);
+		const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_JoinIdenticalVertices | aiProcess_FlipUVs | aiProcess_FixInfacingNormals | aiProcess_GenUVCoords | aiProcess_GenBoundingBoxes);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		{
@@ -207,15 +207,21 @@ namespace VulkanEngine
 				{
 					vertex.texcoord.x = aiMesh->mTextureCoords[0][i].x;
 					vertex.texcoord.y = aiMesh->mTextureCoords[0][i].y;
+				}
+				else
+				{
+					vertex.texcoord = { 0, 0 };
+				}
 
+				if (aiMesh->mTangents)
+				{
 					vertex.tangent.x = aiMesh->mTangents[i].x;
 					vertex.tangent.y = aiMesh->mTangents[i].y;
 					vertex.tangent.z = aiMesh->mTangents[i].z;
 				}
 				else
 				{
-					vertex.texcoord = { 0, 0 };
-					vertex.tangent = { 0, 0, 0 };
+					vertex.tangent = { 0.0, 0.0, 0.0 };
 				}
 
 				// TODO:只处理一套color，且不处理alpha

@@ -1,5 +1,6 @@
 ﻿#include "vulkanScene.hpp"
 #include <include/macro.hpp>
+#include "vulkanUtil.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -84,6 +85,12 @@ namespace VulkanEngine
 
 	void VulkanRenderSceneData::setupRenderData()
 	{
+		// 配置一次subpass的状态，DX内对应PipelineStateObject
+		std::string shaderDir = vulkanRenderer->basePath + "spvs/";
+
+		shaderVSFliePath = shaderDir + "vs" + ".vert.spv";
+		shaderFSFilePath = shaderDir + shaderName + ".frag.spv";
+
 		uniformBufferDynamicObjects.resize(meshes.size());
 		for (size_t i = 0; i < meshes.size(); i++)
 		{

@@ -159,6 +159,10 @@ namespace VulkanEngine
 		std::vector<PointLight*> pointLights;
 		std::vector<DirectionalLight*> directionalLights;
 
+		std::string shaderName;
+		std::string shaderVSFliePath;
+		std::string shaderFSFilePath;
+
 		CameraController cameraController;
 
 		VulkanResource uniformResource;

@@ -14,7 +14,7 @@
 #include "app.hpp"
 
 // 这里注意，要跟SDL库中定义的main函数一致
-int main(int argc, char* argv[]) 
+int main(int argc, char* argv[])
 {
     std::string basePath = SDL_GetBasePath();
     basePath = std::filesystem::path(basePath).parent_path().string();
@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
         app.init();
         app.loop();
         app.quit();
-    }
+    } 
     catch (const std::exception& e)
     {
         std::cerr << e.what() << std::endl;
