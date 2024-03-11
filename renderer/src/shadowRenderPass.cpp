@@ -31,6 +31,28 @@ namespace VulkanEngine
 
 	void DirectionalLightShadowMapRenderPass::clear()
 	{
+		vkQueueWaitIdle(vulkanRender->graphicsQueue);
+		for (const auto& frameBuffer : frameBuffers)
+		{
+			vkDestroyFramebuffer(vulkanRender->device, frameBuffer.frameBuffer, nullptr);
+			for (const auto& attachment : frameBuffer.attachments)
+			{
+				vkDestroyImage(vulkanRender->device, attachment.image, nullptr);
+				vkDestroyImageView(vulkanRender->device, attachment.imageView, nullptr);
+				vkFreeMemory(vulkanRender->device, attachment.memory, nullptr);
+			}
+		}
+
+		for (uint32_t i = 0; i < renderPipelines.size(); i++)
+		{
+			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
+			vkDestroyPipelineLayout(vulkanRender->device, renderPipelines[i].layout, nullptr);
+		}
+
+		vkDestroyDescriptorSetLayout(vulkanRender->device, descriptor.layout, nullptr);
+		vkFreeDescriptorSets(vulkanRender->device, vulkanRender->descriptorPool, 1, &descriptor.descriptorSet);
+
+		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
 	}
 
 	void DirectionalLightShadowMapRenderPass::setupAttachments()
