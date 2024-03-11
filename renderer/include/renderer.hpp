@@ -6,6 +6,7 @@
 
 #include "mainRenderPass.hpp"
 #include "UIPass.hpp"
+#include "shadowRenderPass.hpp"
 #include "vulkanScene.hpp"
 
 #include <chrono>
@@ -28,6 +29,7 @@ namespace VulkanEngine
 
         UIPass* UIRenderPass = nullptr;
         MainRenderPass* mainRenderPass = nullptr;
+        DirectionalLightShadowMapRenderPass* directionalLightShadowMapPass = nullptr;
 
         VulkanRenderSceneData* sceneData = nullptr;
 

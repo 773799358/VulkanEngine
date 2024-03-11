@@ -86,6 +86,9 @@ namespace VulkanEngine
 		shaderVSFliePath = shaderDir + "vs" + ".vert.spv";
 		shaderFSFilePath = shaderDir + shaderName + ".frag.spv";
 
+		shadowVSFilePath = shaderDir + "directionalLightShadow" + ".vert.spv";
+		shadowFSFilePath = shaderDir + "directionalLightShadow" + ".frag.spv";
+
 		uniformBufferDynamicObjects.resize(meshes.size());
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
@@ -163,6 +166,11 @@ namespace VulkanEngine
 		uniformBufferFSObject.viewPos = cameraController.camera.position;
 		uniformBufferFSObject.directionalLightPos = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1.0f);
 
+		//glm::mat4 shadowView = glm::lookAtRH(getSceneBounds().getCenter() + glm::normalize(uniformBufferFSObject.directionalLightPos) * glm::length(getSceneBounds().getSize()) * 3.0f, getSceneBounds().getCenter(), glm::vec3(0.0f, 0.0f, 1.0f));
+		//glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, glm::length(getSceneBounds().getSize()) * 5.0f);
+		//uniformBufferShadowVSObject.viewProject = shadowProj * shadowView;
+		uniformBufferShadowVSObject.viewProject = uniformBufferVSObject.proj * uniformBufferVSObject.view;
+
 		std::vector<UniformBufferDynamicObject> transforms;
 		transforms.resize(meshes.size());
 		for (int i = 0; i < meshes.size(); i++)
@@ -184,6 +192,13 @@ namespace VulkanEngine
 			vkMapMemory(vulkanRenderer->device, uniformDynamicResource.memory, 0, sizeof(transforms), 0, &data);
 			memcpy(data, transforms.data(), sizeof(UniformBufferDynamicObject) * transforms.size());
 			vkUnmapMemory(vulkanRenderer->device, uniformDynamicResource.memory);
+		}
+
+		{
+			void* data;
+			vkMapMemory(vulkanRenderer->device, uniformShadowResource.memory, 0, sizeof(uniformBufferShadowVSObject), 0, &data);
+			memcpy(data, &uniformBufferShadowVSObject, sizeof(uniformBufferShadowVSObject));
+			vkUnmapMemory(vulkanRenderer->device, uniformShadowResource.memory);
 		}
 	}
 

@@ -22,6 +22,7 @@ namespace VulkanEngine
 
 	void DirectionalLightShadowMapRenderPass::drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize)
 	{
+		vkCmdDrawIndexed(commandBuffer, indexSize, 1, 0, 0, 0);
 	}
 
 	void DirectionalLightShadowMapRenderPass::draw(VkCommandBuffer commandBuffer, uint32_t vertexSize)
@@ -79,7 +80,7 @@ namespace VulkanEngine
 
 		attachment[0].format = mainFrameBuffer.attachments[0].format;
 		attachment[0].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachment[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachment[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 		attachment[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachment[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 		attachment[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -150,7 +151,7 @@ namespace VulkanEngine
 		frameBufferCI.attachmentCount = (sizeof(attachments) / sizeof(attachments[0]));
 		frameBufferCI.pAttachments = attachments;
 		frameBufferCI.width = frameBuffers[0].width;
-		frameBufferCI.height = frameBuffers[1].height;
+		frameBufferCI.height = frameBuffers[0].height;
 		frameBufferCI.layers = 1;
 
 		VK_CHECK_RESULT(vkCreateFramebuffer(vulkanRender->device, &frameBufferCI, nullptr, &frameBuffers[0].frameBuffer));
@@ -276,12 +277,97 @@ namespace VulkanEngine
 		colorBlendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 		colorBlendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 
+		// 全局混合设置
 		VkPipelineColorBlendStateCreateInfo colorBlendStateCI = {};
 		colorBlendStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+		colorBlendStateCI.logicOpEnable = VK_FALSE;
+		colorBlendStateCI.logicOp = VK_LOGIC_OP_COPY;
+		colorBlendStateCI.attachmentCount = 1;
+		colorBlendStateCI.pAttachments = &colorBlendAttachmentState;
+		colorBlendStateCI.blendConstants[0] = 0.0f;
+		colorBlendStateCI.blendConstants[1] = 0.0f;
+		colorBlendStateCI.blendConstants[2] = 0.0f;
+		colorBlendStateCI.blendConstants[3] = 0.0f;
+
+		// depth and stencil配置
+		VkPipelineDepthStencilStateCreateInfo depthStencilStateCI = {};
+		depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+		depthStencilStateCI.depthTestEnable = VK_TRUE;
+		depthStencilStateCI.depthWriteEnable = VK_TRUE;
+		depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
+		depthStencilStateCI.stencilTestEnable = VK_FALSE;
+
+		// 动态项设置
+		VkPipelineDynamicStateCreateInfo dynamicStateCI = {};
+		dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+		dynamicStateCI.dynamicStateCount = 0;
+		dynamicStateCI.pDynamicStates = nullptr;
+
+		VkGraphicsPipelineCreateInfo pipelineCI = {};
+		pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+		pipelineCI.stageCount = sizeof(shaderStageCI) / sizeof(shaderStageCI[0]);
+		pipelineCI.pStages = shaderStageCI;
+		pipelineCI.pVertexInputState = &vertexInputStateCI;
+		pipelineCI.pInputAssemblyState = &inputAssemblyCI;
+		pipelineCI.pViewportState = &viewportStateCI;
+		pipelineCI.pRasterizationState = &rasterizationStateCI;
+		pipelineCI.pMultisampleState = &multisampleStateCI;
+		pipelineCI.pColorBlendState = &colorBlendStateCI;
+		pipelineCI.pDepthStencilState = &depthStencilStateCI;
+		pipelineCI.layout = renderPipelines[0].layout;
+		pipelineCI.renderPass = renderPass;
+		pipelineCI.subpass = 0;
+		pipelineCI.basePipelineHandle = VK_NULL_HANDLE;
+		pipelineCI.pDynamicState = &dynamicStateCI;
+
+		VK_CHECK_RESULT(vkCreateGraphicsPipelines(vulkanRender->device, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &renderPipelines[0].pipeline));
+
+		vkDestroyShaderModule(vulkanRender->device, vertShaderModule, nullptr);
+		vkDestroyShaderModule(vulkanRender->device, fragShaderModule, nullptr);
 	}
 
 	void DirectionalLightShadowMapRenderPass::setupDescriptorSet()
 	{
+		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
+		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorSetAllocateInfo.pNext = nullptr;
+		descriptorSetAllocateInfo.descriptorPool = vulkanRender->descriptorPool;
+		descriptorSetAllocateInfo.descriptorSetCount = 1;
+		descriptorSetAllocateInfo.pSetLayouts = &descriptor.layout;
+
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanRender->device, &descriptorSetAllocateInfo, &descriptor.descriptorSet));
+
+		VkDescriptorBufferInfo uniformBufferInfo[2] = {};
+		uniformBufferInfo[0].offset = 0;
+		uniformBufferInfo[0].buffer = sceneData->uniformShadowResource.buffer;
+		uniformBufferInfo[0].range = sizeof(UnifromBufferObjectShadowVS);
+
+		uniformBufferInfo[1].offset = 0;
+		uniformBufferInfo[1].buffer = sceneData->uniformDynamicResource.buffer;
+		uniformBufferInfo[1].range = sizeof(UniformBufferDynamicObject);
+		
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].pNext = nullptr;
+		descriptorWrites[0].dstSet = descriptor.descriptorSet;
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &uniformBufferInfo[0];
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].pNext = nullptr;
+		descriptorWrites[1].dstSet = descriptor.descriptorSet;
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pBufferInfo = &uniformBufferInfo[1];
+
+		vkUpdateDescriptorSets(vulkanRender->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 	}
 
 }

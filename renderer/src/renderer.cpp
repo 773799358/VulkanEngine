@@ -68,6 +68,9 @@ namespace VulkanEngine
         UIRenderPass = new UIPass();
         UIRenderPass->init(vulkanRenderer, mainRenderPass, sceneData);
 
+        directionalLightShadowMapPass = new DirectionalLightShadowMapRenderPass();
+        directionalLightShadowMapPass->init(vulkanRenderer, sceneData);
+
         sceneData->lookAtSceneCenter();
 
         lastFrmeTime = std::chrono::high_resolution_clock::now();
@@ -84,46 +87,87 @@ namespace VulkanEngine
 
         sceneData->updateUniformRenderData();
 
+        VkCommandBuffer currentCommandBuffer = vulkanRenderer->getCurrentCommandBuffer();
+
         if (vulkanRenderer->beginPresent(std::bind(&MainRenderPass::recreate, mainRenderPass)))
         {
             return;
         }
 
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = mainRenderPass->renderPass;
-        renderPassInfo.framebuffer = mainRenderPass->frameBuffers[vulkanRenderer->currentFrameIndex].frameBuffer;
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = vulkanRenderer->swapChainExtent;
-        VkClearValue clearColors[2];
-        clearColors[0].color = { {0.2f, 0.2f, 0.2f, 1.0f} };
-        clearColors[1].depthStencil = { 1.0f, 0 };
-        renderPassInfo.clearValueCount = sizeof(clearColors) / sizeof(clearColors[0]);
-        renderPassInfo.pClearValues = clearColors;
-
-        VkCommandBuffer currentCommandBuffer = vulkanRenderer->getCurrentCommandBuffer();
-        vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-        vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].pipeline);
-
-        for (size_t i = 0; i < sceneData->meshes.size(); i++)
+        // shadow
         {
-            uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
+            VkRenderPassBeginInfo renderPassInfo{};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = directionalLightShadowMapPass->renderPass;
+            renderPassInfo.framebuffer = directionalLightShadowMapPass->frameBuffers[0].frameBuffer;
+            renderPassInfo.renderArea.extent.width = directionalLightShadowMapPass->frameBuffers[0].width;
+            renderPassInfo.renderArea.extent.height = directionalLightShadowMapPass->frameBuffers[0].height;
+            std::array<VkClearValue, 2> clearValues{};
+            clearValues[0].color = { {1.0f} };
+            clearValues[1].depthStencil = { 1.0f, 0 };
+            renderPassInfo.clearValueCount = clearValues.size();
+            renderPassInfo.pClearValues = clearValues.data();
 
-            VkDescriptorSet sets[2] = { sceneData->uniformDescriptor.descriptorSet[0] , sceneData->meshes[i]->material->descriptorSet };
-            vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, 2, sets, 1, &dynamicOffset);
+            vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
-            VkDeviceSize offsets[] = { 0 };
-            vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, offsets);
+            vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, directionalLightShadowMapPass->renderPipelines[0].pipeline);
 
-            vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+            for (size_t i = 0; i < sceneData->meshes.size(); i++)
+            {
+                uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
 
-            mainRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
+                VkDescriptorSet set[1] = { directionalLightShadowMapPass->descriptor.descriptorSet };
+                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, directionalLightShadowMapPass->renderPipelines[0].layout, 0, 1, set, 1, &dynamicOffset);
+
+                VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
+                VkDeviceSize offsets[] = { 0 };
+                vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, offsets);
+
+                vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+                directionalLightShadowMapPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
+            }
+
+            vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
         }
-        UIRenderPass->draw(currentCommandBuffer, 0);
 
-        vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
+        // light
+        {
+            VkRenderPassBeginInfo renderPassInfo = {};
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = mainRenderPass->renderPass;
+            renderPassInfo.framebuffer = mainRenderPass->frameBuffers[vulkanRenderer->currentFrameIndex].frameBuffer;
+            renderPassInfo.renderArea.offset = { 0, 0 };
+            renderPassInfo.renderArea.extent = vulkanRenderer->swapChainExtent;
+            VkClearValue clearColors[2];
+            clearColors[0].color = { {0.2f, 0.2f, 0.2f, 1.0f} };
+            clearColors[1].depthStencil = { 1.0f, 0 };
+            renderPassInfo.clearValueCount = sizeof(clearColors) / sizeof(clearColors[0]);
+            renderPassInfo.pClearValues = clearColors;
+
+            vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+            vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].pipeline);
+
+            for (size_t i = 0; i < sceneData->meshes.size(); i++)
+            {
+                uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
+
+                VkDescriptorSet sets[2] = { sceneData->uniformDescriptor.descriptorSet[0] , sceneData->meshes[i]->material->descriptorSet };
+                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, 2, sets, 1, &dynamicOffset);
+
+                VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
+                VkDeviceSize offsets[] = { 0 };
+                vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, offsets);
+
+                vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+                mainRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
+            }
+            UIRenderPass->draw(currentCommandBuffer, 0);
+
+            vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
+        }
 
         vulkanRenderer->endPresent(std::bind(&MainRenderPass::recreate, mainRenderPass));
     }
@@ -132,6 +176,7 @@ namespace VulkanEngine
     {
         mainRenderPass->clear();
         UIRenderPass->clear();
+        directionalLightShadowMapPass->clear();
         sceneData->clear();
         delete vulkanRenderer;
     }

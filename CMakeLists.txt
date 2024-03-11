@@ -10,6 +10,8 @@ execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/vs.vert -o 
 execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/PBR.frag -o ${CMAKE_SOURCE_DIR}/spvs/PBR.frag.spv)
 execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/blinn.frag -o ${CMAKE_SOURCE_DIR}/spvs/blinn.frag.spv)
 execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/DisneyPBR.frag -o ${CMAKE_SOURCE_DIR}/spvs/DisneyPBR.frag.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/directionalLightShadow.vert -o ${CMAKE_SOURCE_DIR}/spvs/directionalLightShadow.vert.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/directionalLightShadow.frag -o ${CMAKE_SOURCE_DIR}/spvs/directionalLightShadow.frag.spv)
 message(STATUS "compile shader OK")
 
 include(cmake/FindVulkan.cmake)
