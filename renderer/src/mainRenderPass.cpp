@@ -186,13 +186,13 @@ namespace VulkanEngine
 		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
 		// 1.输入的顶点数据描述
-		auto bindingDescription = Vertex::getBindingDescription();
+		auto bindingDescription = Vertex::getBindingDescriptions();
 		auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 1;
-		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescription.size());
+		vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();
 		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());;
 		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
@@ -218,8 +218,9 @@ namespace VulkanEngine
 		rasterizationStateInfo.rasterizerDiscardEnable = VK_FALSE;		// true代表所有图元都不会进入光栅化，禁止任何输出到frameBuffer的方法
 		rasterizationStateInfo.polygonMode = VK_POLYGON_MODE_FILL;		// 填充，也可以绘制点、线
 		rasterizationStateInfo.lineWidth = 1.0f;						// 大于1.0的线需要GPU wideLines支持
-		rasterizationStateInfo.cullMode = VK_CULL_MODE_NONE;
-		rasterizationStateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;		// 顺时针为正，这里要注意，vulkan的NDC，Y是向下的
+		//rasterizationStateInfo.cullMode = VK_CULL_MODE_NONE;
+		rasterizationStateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
+		rasterizationStateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;		// 顺时针为正，这里要注意，vulkan的NDC，Y是向下的
 		// 暂时不用深度偏移
 		rasterizationStateInfo.depthBiasEnable = VK_FALSE;
 		rasterizationStateInfo.depthBiasConstantFactor = 0.0f;

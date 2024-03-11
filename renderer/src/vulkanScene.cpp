@@ -7,13 +7,13 @@
 
 namespace VulkanEngine
 {
-	VkVertexInputBindingDescription Vertex::getBindingDescription()
+	std::array<VkVertexInputBindingDescription, 1> Vertex::getBindingDescriptions()
 	{
-		VkVertexInputBindingDescription bindingDescription = {};
+		std::array<VkVertexInputBindingDescription, 1> bindingDescription = {};
 
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;		// 暂不使用instance
+		bindingDescription[0].binding = 0;
+		bindingDescription[0].stride = sizeof(Vertex);
+		bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;		// 暂不使用instance
 
 		return bindingDescription;
 	}
@@ -48,11 +48,6 @@ namespace VulkanEngine
 		attributeDescriptions[4].offset = offsetof(Vertex, tangent);
 
 		return attributeDescriptions;
-	}
-
-	bool Vertex::operator==(const Vertex& other) const
-	{
-		return position == other.position && color == other.color && texcoord == other.texcoord && normal == other.normal;
 	}
 
 	void VulkanRenderSceneData::init(VulkanRenderer* vulkanRenderer)
@@ -147,6 +142,8 @@ namespace VulkanEngine
 		vkFreeMemory(device, uniformResource.memory, nullptr);
 		vkDestroyBuffer(device, uniformDynamicResource.buffer, nullptr);
 		vkFreeMemory(device, uniformDynamicResource.memory, nullptr);
+		vkDestroyBuffer(device, uniformShadowResource.buffer, nullptr);
+		vkFreeMemory(device, uniformShadowResource.memory, nullptr);
 
 		vkDestroyDescriptorSetLayout(device, uniformDescriptor.layout, nullptr);
 		vkDestroyDescriptorSetLayout(device, PBRMaterialDescriptor.layout, nullptr);
@@ -271,6 +268,12 @@ namespace VulkanEngine
 		if (uniformDynamicBufferSize > 0)
 		{
 			vulkanRenderer->createBuffer(uniformDynamicBufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicResource.buffer, uniformDynamicResource.memory);
+		}
+
+		uint32_t uniformBufferShadowSize = sizeof(uniformBufferShadowVSObject);
+		if (uniformBufferShadowSize > 0)
+		{
+			vulkanRenderer->createBuffer(uniformBufferShadowSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformShadowResource.buffer, uniformShadowResource.memory);
 		}
 	}
 

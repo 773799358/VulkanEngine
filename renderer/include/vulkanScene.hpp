@@ -39,6 +39,11 @@ namespace VulkanEngine
 		glm::mat4 model = glm::mat4(1.0f);
 	};
 
+	struct UnifromBufferObjectShadowVS
+	{
+		glm::mat4 viewProject = glm::mat4(1.0f);
+	};
+
 	struct VulkanDescriptor
 	{
 		VkDescriptorSetLayout layout;
@@ -55,7 +60,7 @@ namespace VulkanEngine
 		glm::vec2 texcoord;
 		glm::vec3 tangent;
 
-		static VkVertexInputBindingDescription getBindingDescription();
+		static std::array<VkVertexInputBindingDescription, 1> getBindingDescriptions();
 		static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions();
 
 		bool operator== (const Vertex& other) const;
@@ -124,16 +129,6 @@ namespace VulkanEngine
 		PBRMaterial* material = nullptr;
 	};
 
-	struct PointLight
-	{
-
-	};
-
-	struct DirectionalLight
-	{
-
-	};
-
 	class VulkanRenderSceneData
 	{
 	public:
@@ -159,12 +154,13 @@ namespace VulkanEngine
 		std::vector<Mesh*> meshes;
 		std::vector<PBRMaterial*> materials;
 		std::vector<Texture*> textures;
-		std::vector<PointLight*> pointLights;
-		std::vector<DirectionalLight*> directionalLights;
 
 		std::string shaderName;
 		std::string shaderVSFliePath;
 		std::string shaderFSFilePath;
+
+		std::string shadowVSFilePath;
+		std::string shadowFSFilePath;
 
 		CameraController cameraController;
 
@@ -174,6 +170,9 @@ namespace VulkanEngine
 
 		VulkanResource uniformDynamicResource;
 		std::vector<UniformBufferDynamicObject> uniformBufferDynamicObjects;
+
+		VulkanResource uniformShadowResource;
+		UnifromBufferObjectShadowVS uniformBufferShadowVSObject;
 
 		glm::mat4 rotate = glm::mat4(1.0);
 

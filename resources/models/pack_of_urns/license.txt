@@ -1,0 +1,11 @@
+Model Information:
+* title:	Pack of urns
+* source:	https://sketchfab.com/3d-models/pack-of-urns-29e24c485ee64fc6afba433ce64e1243
+* author:	Gnossiennes (https://sketchfab.com/Gnossiennes)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Pack of urns" (https://sketchfab.com/3d-models/pack-of-urns-29e24c485ee64fc6afba433ce64e1243) by Gnossiennes (https://sketchfab.com/Gnossiennes) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

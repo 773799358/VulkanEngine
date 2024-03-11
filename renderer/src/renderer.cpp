@@ -32,18 +32,22 @@ namespace VulkanEngine
 
         std::string modelPath = basePath + "/resources/models/";
 
-        //modelPath = modelPath + "post_apocalyptic_telecaster_-_final_gap/scene.gltf";
-        //modelPath = modelPath + "dae_-_bilora_bella_46_camera_-_game_ready_asset.glb"; 
-        //modelPath = modelPath + "reflection_scene.gltf";
-        //modelPath = modelPath + "testModel/scene.gltf";
-        //modelPath = modelPath + "teapot.gltf";
+        //modelPath += "post_apocalyptic_telecaster_-_final_gap/scene.gltf";
+        //modelPath += "dae_-_bilora_bella_46_camera_-_game_ready_asset.glb"; 
+        //modelPath += "reflection_scene.gltf";
+        //modelPath += "testModel/scene.gltf";
+        //modelPath += "teapot.gltf";
+        //modelPath += "10_2k_space_pbr_textures_-_free/scene.gltf";
         //{
-        //    modelPath = modelPath + "ld_textures/scene.gltf";
+        //    modelPath += "ld_textures/scene.gltf";
         //    sceneData->rotate = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         //}
-        //modelPath = modelPath + "10_2k_space_pbr_textures_-_free/scene.gltf";
+        //{
+        //    modelPath += "pack_of_urns/scene.gltf";
+        //    sceneData->rotate = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        //}
         {
-            modelPath = modelPath + "awesome_mix_guardians_of_the_galaxy/scene.gltf";
+            modelPath += "awesome_mix_guardians_of_the_galaxy/scene.gltf";
             sceneData->rotate = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         }
         

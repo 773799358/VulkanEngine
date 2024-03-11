@@ -80,10 +80,13 @@
 
 ## 2024.3.9
 
-1. 平行光PBR
+1. 平行光Cook-Torrance PBR
 2. 对texture包含在文件中，例如：GLB，进行贴图支持，构建image samlper以miplevels为key，进行共用
-3. gamma矫正 + toneMapping // 先关掉了，以免影响看PBR，surface format改为srgb，所以不需要gamma矫正了
+3. gamma矫正 + toneMapping
 
 ## 2024.3.10
 1. disney PBR(效果改善很多，但是需要tangent数据)
 2. 增加 blinn phone
+
+## 2024.3.11
+1. 方向光阴影、PCF
