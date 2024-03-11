@@ -2,6 +2,8 @@
 set(third_party_folder "ThirdParty")
 set(Dependencies ${CMAKE_CURRENT_SOURCE_DIR})
 
+target_include_directories(Renderer PUBLIC ${Dependencies})
+
 # spdlog
 if(NOT TARGET spdlog)
     add_subdirectory(spdlog)
