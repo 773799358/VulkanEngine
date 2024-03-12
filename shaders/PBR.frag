@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#define PI 3.1416
+#include "common.h"
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
@@ -21,6 +21,12 @@ layout(location = 4) in highp vec3 inTangent;
 layout(set = 1, binding = 0) uniform sampler2D baseColorTextureSampler;
 layout(set = 1, binding = 1) uniform sampler2D normalTextureSampler;
 layout(set = 1, binding = 2) uniform sampler2D metallicRoughnessTextureSampler;
+
+layout(set = 2, binding = 0) uniform sampler2D directionalLightShadowMapSampler;
+layout(set = 2, binding = 1) uniform ShadowProjView
+{
+    mat4x4 shadowProjView;
+} shadowUbo;
 
 // layout(location = 0)修饰符明确framebuffer的索引
 layout(location = 0) out highp vec4 outColor;
@@ -103,34 +109,6 @@ highp vec2 ndcxy_to_uv(highp vec2 ndcxy) { return ndcxy * vec2(0.5, 0.5) + vec2(
 
 highp vec2 uv_to_ndcxy(highp vec2 uv) { return uv * vec2(2.0, 2.0) + vec2(-1.0, -1.0); }
 
-highp vec3 calculateNormal()
-{
-    if(length(inTangent) < 0.00001 || isnan(inTangent.x))
-    {
-        return inNormal;
-    }
-
-    highp vec3 tangentNormal = texture(normalTextureSampler, inTexCoord).xyz * 2.0 - 1.0;
-
-    highp vec3 N = normalize(inNormal);
-    highp vec3 T = normalize(inTangent.xyz);
-    highp vec3 B = normalize(cross(N, T));
-
-    highp mat3 TBN = mat3(T, B, N);
-    return normalize(TBN * tangentNormal);
-}
-
-highp vec3 Uncharted2Tonemap(highp vec3 x)
-{
-    highp float A = 0.15;
-    highp float B = 0.50;
-    highp float C = 0.10;
-    highp float D = 0.20;
-    highp float E = 0.02;
-    highp float F = 0.30;
-    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
-}
-
 void main() 
 {
     highp float ambientStrength = ubo.ambientStrength;
@@ -140,7 +118,7 @@ void main()
     highp float metallicFactor = 1.0;
     highp float roughnessFactor = 1.0;
 
-    highp vec3  N                   = calculateNormal();
+    highp vec3  N                   = calculateNormal(normalTextureSampler, inTexCoord, inWorldPos, inTangent, inNormal);
     highp vec3  basecolor           = texture(baseColorTextureSampler, inTexCoord).xyz;
     highp float metallic            = texture(metallicRoughnessTextureSampler, inTexCoord).z * metallicFactor;
     highp float dielectricSpecular  = 0.04;
@@ -168,23 +146,14 @@ void main()
 
         if (NoL > 0.0)
         {
-            //highp float shadow;
-            //{
-            //    highp vec4 position_clip = directional_light_proj_view * vec4(in_world_position, 1.0);
-            //    highp vec3 position_ndc  = position_clip.xyz / position_clip.w;
-
-            //    highp vec2 uv = ndcxy_to_uv(position_ndc.xy);
-
-            //    highp float closest_depth = texture(directional_light_shadow, uv).r + 0.000075;
-            //    highp float current_depth = position_ndc.z;
-
-            //    shadow = (closest_depth >= current_depth) ? 1.0f : -1.0f;
-            //}
+            highp float shadow = 0.0;
+            
+            shadow = calculateShadow(directionalLightShadowMapSampler, inWorldPos, shadowUbo.shadowProjView);
 
             //if (shadow > 0.0f)
             {
                 highp vec3 En = directionalLightColor * NoL;
-                Lo += BRDF(L, V, N, F0, basecolor, metallic, roughness) * En;
+                Lo += BRDF(L, V, N, F0, basecolor, metallic, roughness) * shadow * En;
             }
         }
     }
@@ -192,9 +161,13 @@ void main()
     highp vec3 result = Lo + La;
 
     highp vec3 color = result;
-    // tone mapping
-    color = Uncharted2Tonemap(color * 4.5f);
-    color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
 
+    // tone mapping
+    color = toneMapping(color);
+
+    // Gamma correct
+    // TODO: select the VK_FORMAT_B8G8R8A8_SRGB surface format,
+    // there is no need to do gamma correction in the fragment shader
+    color = gamma(color);
     outColor = vec4(color, 1.0);
 }

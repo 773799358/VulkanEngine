@@ -3,7 +3,7 @@
 #extension GL_EXT_shader_texture_lod: enable
 #extension GL_OES_standard_derivatives : enable
 
-#define PI 3.14159265358979323846
+#include "common.h"
 
 layout(set = 0, binding = 1) uniform UniformBufferObject
 {
@@ -34,9 +34,6 @@ layout(set = 2, binding = 1) uniform ShadowProjView
 
 // layout(location = 0)修饰符明确framebuffer的索引
 layout(location = 0) out highp vec4 outColor;
-
-// 平方函数，square
-float sqr(float x) { return x*x; }
 
 // 入参u时视方向与法线的点积
 // 返回F0为0情况下的SchlickFresnel的解，既0 + (1-0)(1-vdoth)^5
@@ -180,42 +177,6 @@ vec3 BRDF( vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y )
         + Gs*Fs*Ds + .25*clearcoat*Gr*Fr*Dr;
 }
 
-vec3 T;
-vec3 B;
-
-highp vec3 calculateNormal()
-{
-    highp vec3 tangent_normal = texture(normalTextureSampler, inTexCoord).xyz * 2.0 - 1.0;
-
-    highp vec3 N = normalize(inNormal);
-    T = normalize(inTangent.xyz);
-    if(length(inTangent) < 0.0001 || isnan(inTangent.x))
-    {
-        vec3 pos_dx = dFdx(inWorldPos);
-        vec3 pos_dy = dFdy(inWorldPos);
-        vec3 tex_dx = dFdx(vec3(inTexCoord, 0.0));
-        vec3 tex_dy = dFdy(vec3(inTexCoord, 0.0));
-        T = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
-    }
-    B = normalize(cross(N, T));
-
-    highp mat3 TBN = mat3(T, B, N);
-    return normalize(TBN * tangent_normal);
-}
-
-highp vec3 Uncharted2Tonemap(highp vec3 x)
-{
-    highp float A = 0.15;
-    highp float B = 0.50;
-    highp float C = 0.10;
-    highp float D = 0.20;
-    highp float E = 0.02;
-    highp float F = 0.30;
-    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
-}
-
-highp vec2 ndcxyToUv(highp vec2 ndcxy) { return ndcxy * vec2(0.5, 0.5) + vec2(0.5, 0.5); }
-
 void main() 
 {
     highp float ambientStrength = ubo.ambientStrength;
@@ -223,7 +184,7 @@ void main()
     highp vec3 directionalLightDirection = normalize(ubo.directionalLightPos);
     highp vec3 directionalLightColor = vec3(ubo.directionalLightColor);
 
-    highp vec3  N       = calculateNormal();
+    highp vec3  N       = calculateNormal(normalTextureSampler, inTexCoord, inWorldPos, inTangent, inNormal);
     if(length(N) < 0.00001 || isnan(N.x))
     {
         N = inNormal;
@@ -252,38 +213,8 @@ void main()
         if (NoL > 0.0)
         {
             highp float shadow = 0.0;
-            {
-                highp vec4 positionClip = shadowUbo.shadowProjView * vec4(inWorldPos, 1.0);
-                highp vec3 positionNdc  = positionClip.xyz / positionClip.w;
-
-                highp vec2 uv = ndcxyToUv(positionNdc.xy);
-
-                // PCF
-                ivec2 texDim = textureSize(directionalLightShadowMapSampler, 0);
-	            float scale = 1.5;
-	            float dx = scale * 1.0 / float(texDim.x);
-	            float dy = scale * 1.0 / float(texDim.y);
-
-	            float shadowFactor = 0.0;
-	            int count = 0;
-
-                int r = 3;
-	
-	            for (int x = -r; x <= r; x++)
-	            {
-		            for (int y = -r; y <= r; y++)
-		            {
-                        highp float closestDepth = texture(directionalLightShadowMapSampler, uv + vec2(dx * x, dy * y)).x + 0.003;
-                        highp float currentDepth = positionNdc.z;
-
-                        highp float tempShadow = (closestDepth >= currentDepth) ? 1.0f : 0.0f;
-			            shadowFactor += tempShadow;
-			            count++;
-		            }
-	            
-	                shadow = shadowFactor / count;
-                }
-            }
+            
+            shadow = calculateShadow(directionalLightShadowMapSampler, inWorldPos, shadowUbo.shadowProjView);
 
             //if (shadow > 0.0f)
             {
@@ -298,13 +229,12 @@ void main()
 
     highp vec3 color = result;
     // tone mapping
-    color = Uncharted2Tonemap(color * 4.5f);
-    color = color * (1.0f / Uncharted2Tonemap(vec3(11.2f)));
-
+    color = toneMapping(color);
+    
     // Gamma correct
     // TODO: select the VK_FORMAT_B8G8R8A8_SRGB surface format,
     // there is no need to do gamma correction in the fragment shader
-    color = vec3(pow(color.x, 1.0 / 2.2), pow(color.y, 1.0 / 2.2), pow(color.z, 1.0 / 2.2));
+    color = gamma(color);
 
     outColor = vec4(vec3(color), 1.0);
 }
