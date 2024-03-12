@@ -20,13 +20,15 @@ namespace VulkanEngine
 		void clear() override;
 
 		void setDirectionalLightShadowMapView(VkImageView imageView);
+		VulkanDescriptor shadowDepthDataDescriptor;
 
 	private:
 		void setupRenderPass();
 		void setupPipelines();
 		void setupFrameBuffers();
+		void setupDirectionalLightShadowDescriptor();
 
-		VkImageView directionalLightShadowMapView;
+		VkImageView directionalLightShadowMapView = VK_NULL_HANDLE;
 
 		VulkanFrameBufferAttachment colorAttachment;
 	};

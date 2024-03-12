@@ -61,6 +61,9 @@ namespace VulkanEngine
         }
         mipmapSamplerMap.clear();
 
+        vkDestroySampler(device, nearestSampler, nullptr);
+        vkDestroySampler(device, linearSampler, nullptr);
+
         vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -1355,6 +1358,62 @@ namespace VulkanEngine
 
         mipmapSamplerMap.insert(std::make_pair(miplevles, sampler));
         return sampler;
+    }
+
+    VkSampler VulkanRenderer::getOrCreateNearestSampler()
+    {
+        if (linearSampler == VK_NULL_HANDLE)
+        {
+            VkSamplerCreateInfo samplerInfo{};
+
+            samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+            samplerInfo.magFilter = VK_FILTER_NEAREST;
+            samplerInfo.minFilter = VK_FILTER_NEAREST;
+            samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.mipLodBias = 0.0f;
+            samplerInfo.anisotropyEnable = VK_FALSE;
+            samplerInfo.maxAnisotropy = 16; // close :1.0f
+            samplerInfo.compareEnable = VK_FALSE;
+            samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+            samplerInfo.minLod = 0.0f;
+            samplerInfo.maxLod = 8.0f; // TODO: irradianceTextureMiplevels
+            samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+            samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+            VK_CHECK_RESULT(vkCreateSampler(device, &samplerInfo, nullptr, &linearSampler));
+        }
+        return linearSampler;
+    }
+
+    VkSampler VulkanRenderer::getOrCreateLinearSampler()
+    {
+        if (linearSampler == VK_NULL_HANDLE)
+        {
+            VkSamplerCreateInfo samplerInfo{};
+
+            samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+            samplerInfo.magFilter = VK_FILTER_LINEAR;
+            samplerInfo.minFilter = VK_FILTER_LINEAR;
+            samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+            samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            samplerInfo.mipLodBias = 0.0f;
+            samplerInfo.anisotropyEnable = VK_FALSE;
+            samplerInfo.maxAnisotropy = 16; // close :1.0f
+            samplerInfo.compareEnable = VK_FALSE;
+            samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+            samplerInfo.minLod = 0.0f;
+            samplerInfo.maxLod = 8.0f; // TODO: irradianceTextureMiplevels
+            samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+            samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+            VK_CHECK_RESULT(vkCreateSampler(device, &samplerInfo, nullptr, &linearSampler));
+        }
+        return linearSampler;
     }
 
     void VulkanRenderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)

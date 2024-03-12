@@ -62,9 +62,6 @@ namespace VulkanEngine
 
         sceneData->setupRenderData();
 
-        UIRenderPass = new UIPass();
-        UIRenderPass->init(vulkanRenderer, mainRenderPass, sceneData);
-
         directionalLightShadowMapPass = new DirectionalLightShadowMapRenderPass();
         directionalLightShadowMapPass->init(vulkanRenderer, sceneData);
 
@@ -72,6 +69,9 @@ namespace VulkanEngine
         mainRenderPass->init(vulkanRenderer, sceneData);
         mainRenderPass->setDirectionalLightShadowMapView(directionalLightShadowMapPass->frameBuffers[0].attachments[0].imageView);
         mainRenderPass->postInit();
+
+        UIRenderPass = new UIPass();
+        UIRenderPass->init(vulkanRenderer, mainRenderPass, sceneData);
 
         sceneData->lookAtSceneCenter();
 
@@ -155,8 +155,8 @@ namespace VulkanEngine
             {
                 uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
 
-                VkDescriptorSet sets[2] = { sceneData->uniformDescriptor.descriptorSet[0] , sceneData->meshes[i]->material->descriptorSet };
-                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, 2, sets, 1, &dynamicOffset);
+                std::array<VkDescriptorSet, 3> sets = { sceneData->uniformDescriptor.descriptorSet[0], sceneData->meshes[i]->material->descriptorSet, mainRenderPass->shadowDepthDataDescriptor.descriptorSet };
+                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, sets.size(), sets.data(), 1, &dynamicOffset);
 
                 VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
                 VkDeviceSize offsets[] = { 0 };

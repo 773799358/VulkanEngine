@@ -82,6 +82,8 @@ namespace VulkanEngine
             uint32_t miplevels);
 
         VkSampler getOrCreateMipmapSampler(uint32_t miplevles);
+        VkSampler getOrCreateNearestSampler();
+        VkSampler getOrCreateLinearSampler();
 
         void createBuffer(
             VkDeviceSize size,
@@ -193,5 +195,7 @@ namespace VulkanEngine
 
         // sampler
         std::map<uint32_t, VkSampler> mipmapSamplerMap;
+        VkSampler nearestSampler = VK_NULL_HANDLE;
+        VkSampler linearSampler = VK_NULL_HANDLE;
     };
 }

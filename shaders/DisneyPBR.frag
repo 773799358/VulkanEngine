@@ -26,6 +26,12 @@ layout(set = 1, binding = 0) uniform sampler2D baseColorTextureSampler;
 layout(set = 1, binding = 1) uniform sampler2D normalTextureSampler;
 layout(set = 1, binding = 2) uniform sampler2D metallicRoughnessTextureSampler;
 
+layout(set = 2, binding = 0) uniform sampler2D directionalLightShadowMapSampler;
+layout(set = 2, binding = 1) uniform ShadowProjView
+{
+    mat4x4 shadowProjView;
+} shadowUbo;
+
 // layout(location = 0)修饰符明确framebuffer的索引
 layout(location = 0) out highp vec4 outColor;
 
@@ -208,6 +214,8 @@ highp vec3 Uncharted2Tonemap(highp vec3 x)
     return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
 }
 
+highp vec2 ndcxyToUv(highp vec2 ndcxy) { return ndcxy * vec2(0.5, 0.5) + vec2(0.5, 0.5); }
+
 void main() 
 {
     highp float ambientStrength = ubo.ambientStrength;
@@ -243,20 +251,20 @@ void main()
 
         if (NoL > 0.0)
         {
-            //highp float shadow;
-            //{
-            //    highp vec4 position_clip = directional_light_proj_view * vec4(in_world_position, 1.0);
-            //    highp vec3 position_ndc  = position_clip.xyz / position_clip.w;
+            highp float shadow;
+            {
+                highp vec4 positionClip = shadowUbo.shadowProjView * vec4(inWorldPos, 1.0);
+                highp vec3 positionNdc  = positionClip.xyz / positionClip.w;
 
-            //    highp vec2 uv = ndcxy_to_uv(position_ndc.xy);
+                highp vec2 uv = ndcxyToUv(positionNdc.xy);
 
-            //    highp float closest_depth = texture(directional_light_shadow, uv).r + 0.000075;
-            //    highp float current_depth = position_ndc.z;
+                highp float closestDepth = texture(directionalLightShadowMapSampler, uv).r + 0.000075;
+                highp float currentDepth = positionNdc.z;
 
-            //    shadow = (closest_depth >= current_depth) ? 1.0f : -1.0f;
-            //}
+                shadow = (closestDepth >= currentDepth) ? 1.0f : -1.0f;
+            }
 
-            //if (shadow > 0.0f)
+            if (shadow > 0.0f)
             {
                 //highp vec3 En = directionalLightColor * NoL;
                 //Lo += BRDF(L, V, N, F0, basecolor, metallic, roughness) * En;
@@ -277,5 +285,5 @@ void main()
     // there is no need to do gamma correction in the fragment shader
     color = vec3(pow(color.x, 1.0 / 2.2), pow(color.y, 1.0 / 2.2), pow(color.z, 1.0 / 2.2));
 
-    outColor = vec4(color, 1.0);
+    outColor = vec4(vec3(color), 1.0);
 }

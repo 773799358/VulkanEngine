@@ -12,6 +12,7 @@ namespace VulkanEngine
 
 	void MainRenderPass::postInit()
 	{
+		setupDirectionalLightShadowDescriptor();
 		setupRenderPass();
 		setupPipelines();
 		setupFrameBuffers();
@@ -63,6 +64,9 @@ namespace VulkanEngine
 		vkDestroyImageView(vulkanRender->device, colorAttachment.imageView, nullptr);
 		vkFreeMemory(vulkanRender->device, colorAttachment.memory, nullptr);
 
+		vkDestroyDescriptorSetLayout(vulkanRender->device, shadowDepthDataDescriptor.layout, nullptr);
+		vkFreeDescriptorSets(vulkanRender->device, vulkanRender->descriptorPool, 1, &shadowDepthDataDescriptor.descriptorSet);
+
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
 		{
 			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
@@ -74,7 +78,7 @@ namespace VulkanEngine
 
 	void MainRenderPass::setDirectionalLightShadowMapView(VkImageView imageView)
 	{
-		directionalLightShadowMapView = imageView;
+		this->directionalLightShadowMapView = imageView;
 	}
 
 	void MainRenderPass::setupRenderPass()
@@ -288,12 +292,12 @@ namespace VulkanEngine
 		dynamicStateInfo.pDynamicStates = dynamicStates;
 
 		// 9.管线布局
-		VkDescriptorSetLayout descriptorSetLayout[2] = { sceneData->uniformDescriptor.layout, sceneData->PBRMaterialDescriptor.layout };
+		std::array<VkDescriptorSetLayout, 3> descriptorSetLayout = { sceneData->uniformDescriptor.layout, sceneData->PBRMaterialDescriptor.layout, shadowDepthDataDescriptor.layout };
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		pipelineLayoutInfo.setLayoutCount = 2;
-		pipelineLayoutInfo.pSetLayouts = descriptorSetLayout;
+		pipelineLayoutInfo.setLayoutCount = descriptorSetLayout.size();
+		pipelineLayoutInfo.pSetLayouts = descriptorSetLayout.data();
 		pipelineLayoutInfo.pushConstantRangeCount = 0;
 		pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
@@ -376,6 +380,71 @@ namespace VulkanEngine
 
 			VK_CHECK_RESULT(vkCreateFramebuffer(vulkanRender->device, &frameBufferInfo, nullptr, &frameBuffers[i].frameBuffer));
 		}
+	}
+
+	void MainRenderPass::setupDirectionalLightShadowDescriptor()
+	{
+		VkDescriptorSetLayoutBinding binding[2] = {};
+
+		binding[0].binding = 0;
+		binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		binding[0].descriptorCount = 1;
+		binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		binding[1].binding = 1;
+		binding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		binding[1].descriptorCount = 1;
+		binding[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		VkDescriptorSetLayoutCreateInfo layoutCI = {};
+		layoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutCI.pNext = nullptr;
+		layoutCI.flags = 0;
+		layoutCI.bindingCount = sizeof(binding) / sizeof(binding[0]);
+		layoutCI.pBindings = binding;
+
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRender->device, &layoutCI, nullptr, &shadowDepthDataDescriptor.layout));
+
+		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
+		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorSetAllocateInfo.pNext = nullptr;
+		descriptorSetAllocateInfo.descriptorPool = vulkanRender->descriptorPool;
+		descriptorSetAllocateInfo.descriptorSetCount = 1;
+		descriptorSetAllocateInfo.pSetLayouts = &shadowDepthDataDescriptor.layout;
+
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanRender->device, &descriptorSetAllocateInfo, &shadowDepthDataDescriptor.descriptorSet));
+
+		VkDescriptorImageInfo shadowImageInfo = {};
+		shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		shadowImageInfo.imageView = directionalLightShadowMapView;
+		shadowImageInfo.sampler = vulkanRender->getOrCreateNearestSampler();
+
+		VkDescriptorBufferInfo bufferInfo = {};
+		bufferInfo.offset = 0;
+		bufferInfo.buffer = sceneData->uniformShadowResource.buffer;
+		bufferInfo.range = sizeof(UnifromBufferObjectShadowProjView);
+
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = shadowDepthDataDescriptor.descriptorSet;
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = nullptr;
+		descriptorWrites[0].pImageInfo = &shadowImageInfo;
+		descriptorWrites[0].pTexelBufferView = nullptr;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].pNext = nullptr;
+		descriptorWrites[1].dstSet = shadowDepthDataDescriptor.descriptorSet;
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pBufferInfo = &bufferInfo;
+
+		vkUpdateDescriptorSets(vulkanRender->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 
 }

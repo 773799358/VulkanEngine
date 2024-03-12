@@ -41,7 +41,7 @@ namespace VulkanEngine
 		glm::mat4 model = glm::mat4(1.0f);
 	};
 
-	struct UnifromBufferObjectShadowVS
+	struct UnifromBufferObjectShadowProjView
 	{
 		glm::mat4 projectView = glm::mat4(1.0f);
 	};
@@ -174,7 +174,7 @@ namespace VulkanEngine
 		std::vector<UniformBufferDynamicObject> uniformBufferDynamicObjects;
 
 		VulkanResource uniformShadowResource;
-		UnifromBufferObjectShadowVS uniformBufferShadowVSObject;
+		UnifromBufferObjectShadowProjView uniformBufferShadowVSObject;
 
 		glm::mat4 rotate = glm::mat4(1.0);
 

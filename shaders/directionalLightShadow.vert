@@ -4,7 +4,7 @@
 
 layout(set = 0, binding = 0) uniform UniformBufferObject
 {
-    mat4 viewProj;
+    mat4 projView;
 } ubo;
 
 layout(set = 0, binding = 1) uniform UniformBufferDynamicObject
@@ -21,5 +21,5 @@ out gl_PerVertex
 
 void main() 
 {
-    gl_Position = ubo.viewProj * uboDynamic.model * vec4(inPosition, 1.0);
+    gl_Position = ubo.projView * uboDynamic.model * vec4(inPosition, 1.0);
 }

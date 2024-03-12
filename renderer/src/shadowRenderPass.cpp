@@ -363,7 +363,7 @@ namespace VulkanEngine
 		VkDescriptorBufferInfo uniformBufferInfo[2] = {};
 		uniformBufferInfo[0].offset = 0;
 		uniformBufferInfo[0].buffer = sceneData->uniformShadowResource.buffer;
-		uniformBufferInfo[0].range = sizeof(UnifromBufferObjectShadowVS);
+		uniformBufferInfo[0].range = sizeof(UnifromBufferObjectShadowProjView);
 
 		uniformBufferInfo[1].offset = 0;
 		uniformBufferInfo[1].buffer = sceneData->uniformDynamicResource.buffer;
