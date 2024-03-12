@@ -123,11 +123,7 @@ namespace VulkanEngine
 	{
 		Node* node = nullptr;
 		std::vector<Vertex> vertices;
-		VulkanResource vertexBuffer;
-
 		std::vector<uint32_t> indices;
-		VulkanResource indexBuffer;
-
 		PBRMaterial* material = nullptr;
 	};
 
@@ -166,6 +162,9 @@ namespace VulkanEngine
 
 		CameraController cameraController;
 
+		VulkanResource vertexResource;
+		VulkanResource indexResource;
+
 		VulkanResource uniformResource;
 		UniformBufferObjectVS uniformBufferVSObject;
 		UniformBufferObjectFS uniformBufferFSObject;
@@ -183,8 +182,8 @@ namespace VulkanEngine
 
 	public:
 
-		void createVertexData(Mesh* mesh);
-		void createIndexData(Mesh* mesh);
+		void createVertexData();
+		void createIndexData();
 
 		void createUniformBufferData();
 		void createUniformDescriptorSet();

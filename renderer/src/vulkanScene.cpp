@@ -93,9 +93,9 @@ namespace VulkanEngine
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			uniformBufferDynamicObjects[i].model = meshes[i]->node->worldTransform;
-			createVertexData(meshes[i]);
-			createIndexData(meshes[i]);
 		}
+		createVertexData();
+		createIndexData();
 		createUniformBufferData();
 		createUniformDescriptorSet();
 		createPBRDescriptorLayout();
@@ -114,12 +114,14 @@ namespace VulkanEngine
 	void VulkanRenderSceneData::clear()
 	{
 		auto& device = vulkanRenderer->device;
+
+		vkDestroyBuffer(device, vertexResource.buffer, nullptr);
+		vkFreeMemory(device, vertexResource.memory, nullptr);
+		vkDestroyBuffer(device, indexResource.buffer, nullptr);
+		vkFreeMemory(device, indexResource.memory, nullptr);
+
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
-			vkDestroyBuffer(device, meshes[i]->vertexBuffer.buffer, nullptr);
-			vkFreeMemory(device, meshes[i]->vertexBuffer.memory, nullptr);
-			vkDestroyBuffer(device, meshes[i]->indexBuffer.buffer, nullptr);
-			vkFreeMemory(device, meshes[i]->indexBuffer.memory, nullptr);
 			delete meshes[i];
 		}
 
@@ -237,10 +239,13 @@ namespace VulkanEngine
 		cameraController.setCenterAndRadius(box.getCenter(), radius);
 	}
 
-	void VulkanRenderSceneData::createVertexData(Mesh* mesh)
+	void VulkanRenderSceneData::createVertexData()
 	{
-		auto& vertices = mesh->vertices;
-		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+		VkDeviceSize bufferSize = 0;
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			bufferSize += meshes[i]->vertices.size() * sizeof(Vertex);
+		}
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -248,21 +253,29 @@ namespace VulkanEngine
 
 		void* data;
 		vkMapMemory(vulkanRenderer->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices.data(), (size_t)bufferSize);
+		uint32_t offset = 0;
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			memcpy((char*)(data) + offset, meshes[i]->vertices.data(), sizeof(Vertex) * meshes[i]->vertices.size());
+			offset += sizeof(Vertex) * meshes[i]->vertices.size();
+		}
 		vkUnmapMemory(vulkanRenderer->device, stagingBufferMemory);
 
-		vulkanRenderer->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh->vertexBuffer.buffer, mesh->vertexBuffer.memory);
+		vulkanRenderer->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexResource.buffer, vertexResource.memory);
 
-		vulkanRenderer->copyBuffer(stagingBuffer, mesh->vertexBuffer.buffer, bufferSize);
+		vulkanRenderer->copyBuffer(stagingBuffer, vertexResource.buffer, bufferSize);
 
 		vkDestroyBuffer(vulkanRenderer->device, stagingBuffer, nullptr);
 		vkFreeMemory(vulkanRenderer->device, stagingBufferMemory, nullptr);
 	}
 
-	void VulkanRenderSceneData::createIndexData(Mesh* mesh)
+	void VulkanRenderSceneData::createIndexData()
 	{
-		auto& indices = mesh->indices;
-		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+		VkDeviceSize bufferSize = 0;
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			bufferSize += meshes[i]->indices.size() * sizeof(uint32_t);
+		}
 
 		VkBuffer stagingBuffer;
 		VkDeviceMemory stagingBufferMemory;
@@ -270,12 +283,17 @@ namespace VulkanEngine
 
 		void* data;
 		vkMapMemory(vulkanRenderer->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, indices.data(), (size_t)bufferSize);
+		uint32_t offset = 0;
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			memcpy((char*)(data) + offset, meshes[i]->indices.data(), sizeof(uint32_t) * meshes[i]->indices.size());
+			offset += sizeof(uint32_t) * meshes[i]->indices.size();
+		}
 		vkUnmapMemory(vulkanRenderer->device, stagingBufferMemory);
 
-		vulkanRenderer->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mesh->indexBuffer.buffer, mesh->indexBuffer.memory);
+		vulkanRenderer->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexResource.buffer, indexResource.memory);
 
-		vulkanRenderer->copyBuffer(stagingBuffer, mesh->indexBuffer.buffer, bufferSize);
+		vulkanRenderer->copyBuffer(stagingBuffer, indexResource.buffer, bufferSize);
 
 		vkDestroyBuffer(vulkanRenderer->device, stagingBuffer, nullptr);
 		vkFreeMemory(vulkanRenderer->device, stagingBufferMemory, nullptr);

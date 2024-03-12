@@ -114,6 +114,8 @@ namespace VulkanEngine
 
             vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, directionalLightShadowMapPass->renderPipelines[0].pipeline);
 
+            VkDeviceSize vertexOffset = 0;
+            VkDeviceSize indexOffset = 0;
             for (size_t i = 0; i < sceneData->meshes.size(); i++)
             {
                 uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
@@ -121,11 +123,14 @@ namespace VulkanEngine
                 VkDescriptorSet set[1] = { directionalLightShadowMapPass->descriptor.descriptorSet };
                 vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, directionalLightShadowMapPass->renderPipelines[0].layout, 0, 1, set, 1, &dynamicOffset);
 
-                VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
-                VkDeviceSize offsets[] = { 0 };
-                vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, offsets);
+                VkBuffer vertexBuffers[] = { sceneData->vertexResource.buffer };
+                VkDeviceSize vertexOffsets[] = { vertexOffset };
+                vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, vertexOffsets);
 
-                vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->indexResource.buffer, indexOffset, VK_INDEX_TYPE_UINT32);
+
+                vertexOffset += sizeof(Vertex) * sceneData->meshes[i]->vertices.size();
+                indexOffset += sizeof(Uint32) * sceneData->meshes[i]->indices.size();
 
                 directionalLightShadowMapPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
             }
@@ -151,6 +156,8 @@ namespace VulkanEngine
 
             vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].pipeline);
 
+            VkDeviceSize vertexOffset = 0;
+            VkDeviceSize indexOffset = 0;
             for (size_t i = 0; i < sceneData->meshes.size(); i++)
             {
                 uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
@@ -158,11 +165,14 @@ namespace VulkanEngine
                 std::array<VkDescriptorSet, 3> sets = { sceneData->uniformDescriptor.descriptorSet[0], sceneData->meshes[i]->material->descriptorSet, mainRenderPass->shadowDepthDataDescriptor.descriptorSet };
                 vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, sets.size(), sets.data(), 1, &dynamicOffset);
 
-                VkBuffer vertexBuffers[] = { sceneData->meshes[i]->vertexBuffer.buffer };
-                VkDeviceSize offsets[] = { 0 };
-                vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, offsets);
+                VkBuffer vertexBuffers[] = { sceneData->vertexResource.buffer };
+                VkDeviceSize vertexOffsets[] = { vertexOffset };
+                vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, vertexOffsets);
 
-                vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->meshes[i]->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->indexResource.buffer, indexOffset, VK_INDEX_TYPE_UINT32);
+
+                vertexOffset += sizeof(Vertex) * sceneData->meshes[i]->vertices.size();
+                indexOffset += sizeof(Uint32) * sceneData->meshes[i]->indices.size();
 
                 mainRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
             }
