@@ -4,18 +4,24 @@
 仅支持windows，因为没有苹果电脑和linux环境，后续会对其他平台进行支持，需要安装vulkan的时候需勾选SDL2（安装包已放入项目，建议勾选全部组件），直接执行build_window.bat即可
 然后选择test为启动项，运行，或者进入目录VulkanEngine\build\Release，双击运行test.exe
 
+### 现有功能
+1. 前向管线
+2. 非透明物体的直接方向光PBR
+3. 前向管线的MSAA
+4. 方向光阴影、PCF
+
 ### 未来可能要实现和优化的部分以及建议笔记：
 
 |  分类    | 描述  | 备注 |
 |  ----    | ----  | ---- |
 | pipeline种类 |||||
-|| 前向 | 点光源、方向光、阴影、MSAA、FORWARD+ |
+|| 前向 | 点光源、~~方向光~~、~~阴影~~、~~MSAA~~、FORWARD+ |
 || 延迟 | 点光源、方向光、阴影、FXAA |
 |||TAA、延迟后+前向半透明、CSM+VSSM、PBR+IBL、lightmap+probe、SSDO、SSAO、SSR、toneMapping、grad等等后处理|
 | buffer管理||||
 || 接入VMA ||
 || 将position属性与其他属性分开储存，加速顶点着色 ||
-|| 场景数据内存管理，根据更新频率不同，申请不同的大块内存，一次性提交大量数据，用offset来使用实例数据 | 对于uniform缓冲使用VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT标记，避免暂存资源的两次复制，使用持久化标记，避免频繁进行map/unmap操作。<br>VkPhysicalDeviceLimits::maxDescriptorSetUniformBuffers：可以绑定到一个描述符集的最大uniform缓冲数量。 <br>对于着色器输入，使用uniform缓冲比storage缓冲更好。| 
+|| 场景数据内存管理，根据更新频率不同，申请不同的大块内存，一次性提交大量数据，用offset来使用实例数据（mesh信息已经用这个方法实现） | ~~对于uniform缓冲使用VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT标记，避免暂存资源的两次复制~~，使用持久化标记，避免频繁进行map/unmap操作。<br>VkPhysicalDeviceLimits::maxDescriptorSetUniformBuffers：可以绑定到一个描述符集的最大uniform缓冲数量。 <br>对于着色器输入，使用uniform缓冲比storage缓冲更好。| 
 || 对descriptorSet进行编码，构建map，实现复用，同一pass下按照key和pipeline共同决定draw顺序，减少切换|sampler 已经根据mipLevel做key，进行共用|
 | pipeline管理 ||||
 || 使用一个pipeline cache创建所有管线对象 | 避免使用衍生管线对象 |

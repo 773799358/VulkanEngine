@@ -4,9 +4,9 @@
 #include "vulkanRenderer.hpp"
 #include "vulkanRenderPass.hpp"
 
-#include "mainRenderPass.hpp"
-#include "UIPass.hpp"
-#include "shadowRenderPass.hpp"
+#include "renderPass_forwardLight.hpp"
+#include "renderPass_UI.hpp"
+#include "renderPass_directionalLightShadow.hpp"
 #include "vulkanScene.hpp"
 
 #include <chrono>
