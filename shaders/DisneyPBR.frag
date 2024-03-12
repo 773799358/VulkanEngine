@@ -10,8 +10,10 @@ layout(set = 0, binding = 1) uniform UniformBufferObject
     vec3 viewPos;
 	float ambientStrength;
 	vec3 directionalLightPos;
-	float padding;
+	float padding0;
 	vec3 directionalLightColor;
+    float padding1;
+    mat4x4 directionalLightProjView;
 } ubo;
 
 layout(location = 0) in highp vec3 inColor;

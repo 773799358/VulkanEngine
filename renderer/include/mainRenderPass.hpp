@@ -19,10 +19,14 @@ namespace VulkanEngine
 		void recreate();
 		void clear() override;
 
+		void setDirectionalLightShadowMapView(VkImageView imageView);
+
 	private:
 		void setupRenderPass();
 		void setupPipelines();
 		void setupFrameBuffers();
+
+		VkImageView directionalLightShadowMapView;
 
 		VulkanFrameBufferAttachment colorAttachment;
 	};

@@ -62,14 +62,16 @@ namespace VulkanEngine
 
         sceneData->setupRenderData();
 
-        mainRenderPass = new MainRenderPass();
-        mainRenderPass->init(vulkanRenderer, sceneData);
-
         UIRenderPass = new UIPass();
         UIRenderPass->init(vulkanRenderer, mainRenderPass, sceneData);
 
         directionalLightShadowMapPass = new DirectionalLightShadowMapRenderPass();
         directionalLightShadowMapPass->init(vulkanRenderer, sceneData);
+
+        mainRenderPass = new MainRenderPass();
+        mainRenderPass->init(vulkanRenderer, sceneData);
+        mainRenderPass->setDirectionalLightShadowMapView(directionalLightShadowMapPass->frameBuffers[0].attachments[0].imageView);
+        mainRenderPass->postInit();
 
         sceneData->lookAtSceneCenter();
 

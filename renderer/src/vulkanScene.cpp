@@ -170,7 +170,9 @@ namespace VulkanEngine
 		glm::mat4 shadowProj = glm::perspective(glm::radians(45.0f), 1.0f, 50.0f, 1000.0f);
 		shadowProj[1][1] *= -1;
 
-		uniformBufferShadowVSObject.viewProject = shadowProj * shadowView;
+		uniformBufferShadowVSObject.projectView = shadowProj * shadowView;
+
+		uniformBufferFSObject.directionalLightProjView = uniformBufferShadowVSObject.projectView;
 
 		std::vector<UniformBufferDynamicObject> transforms;
 		transforms.resize(meshes.size());

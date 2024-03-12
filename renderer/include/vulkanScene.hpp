@@ -30,8 +30,10 @@ namespace VulkanEngine
 		glm::vec3 viewPos = glm::vec3(0.0f);
 		float ambientStrength = 0.02f;
 		glm::vec3 directionalLightPos = glm::vec3(1.0f);
-		float padding;
+		float padding0;
 		glm::vec3 directionalLightColor = glm::vec3(1.0f);
+		float padding1;
+		glm::mat4 directionalLightProjView = glm::mat4(1.0f);
 	};
 
 	struct alignas(64) UniformBufferDynamicObject
@@ -41,7 +43,7 @@ namespace VulkanEngine
 
 	struct UnifromBufferObjectShadowVS
 	{
-		glm::mat4 viewProject = glm::mat4(1.0f);
+		glm::mat4 projectView = glm::mat4(1.0f);
 	};
 
 	struct VulkanDescriptor

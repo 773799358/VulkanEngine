@@ -8,13 +8,13 @@ namespace VulkanEngine
 	void MainRenderPass::init(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData)
 	{
 		VulkanRenderPass::init(vulkanRender, sceneData);
-		setupRenderPass();
-		setupPipelines();
-		setupFrameBuffers();
 	}
 
 	void MainRenderPass::postInit()
 	{
+		setupRenderPass();
+		setupPipelines();
+		setupFrameBuffers();
 	}
 
 	void MainRenderPass::drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize)
@@ -70,6 +70,11 @@ namespace VulkanEngine
 		}
 
 		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
+	}
+
+	void MainRenderPass::setDirectionalLightShadowMapView(VkImageView imageView)
+	{
+		directionalLightShadowMapView = imageView;
 	}
 
 	void MainRenderPass::setupRenderPass()
