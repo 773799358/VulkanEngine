@@ -251,24 +251,45 @@ void main()
 
         if (NoL > 0.0)
         {
-            highp float shadow;
+            highp float shadow = 0.0;
             {
                 highp vec4 positionClip = shadowUbo.shadowProjView * vec4(inWorldPos, 1.0);
                 highp vec3 positionNdc  = positionClip.xyz / positionClip.w;
 
                 highp vec2 uv = ndcxyToUv(positionNdc.xy);
 
-                highp float closestDepth = texture(directionalLightShadowMapSampler, uv).r + 0.000075;
-                highp float currentDepth = positionNdc.z;
+                // PCF
+                ivec2 texDim = textureSize(directionalLightShadowMapSampler, 0);
+	            float scale = 1.5;
+	            float dx = scale * 1.0 / float(texDim.x);
+	            float dy = scale * 1.0 / float(texDim.y);
 
-                shadow = (closestDepth >= currentDepth) ? 1.0f : -1.0f;
+	            float shadowFactor = 0.0;
+	            int count = 0;
+
+                int r = 3;
+	
+	            for (int x = -r; x <= r; x++)
+	            {
+		            for (int y = -r; y <= r; y++)
+		            {
+                        highp float closestDepth = texture(directionalLightShadowMapSampler, uv + vec2(dx * x, dy * y)).x + 0.003;
+                        highp float currentDepth = positionNdc.z;
+
+                        highp float tempShadow = (closestDepth >= currentDepth) ? 1.0f : 0.0f;
+			            shadowFactor += tempShadow;
+			            count++;
+		            }
+	            
+	                shadow = shadowFactor / count;
+                }
             }
 
-            if (shadow > 0.0f)
+            //if (shadow > 0.0f)
             {
                 //highp vec3 En = directionalLightColor * NoL;
                 //Lo += BRDF(L, V, N, F0, basecolor, metallic, roughness) * En;
-                Lo += BRDF(L, V, N, T, B);
+                Lo += BRDF(L, V, N, T, B) * shadow;
             }
         }
     }
