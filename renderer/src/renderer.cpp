@@ -73,8 +73,8 @@ namespace VulkanEngine
         //mainRenderPass = new MainRenderPass();
         //mainRenderPass->init(vulkanRenderer, sceneData);
 
-        //UIRenderPass = new UIPass();
-        //UIRenderPass->init(vulkanRenderer, deferredRenderPass, sceneData);
+        UIRenderPass = new UIPass();
+        UIRenderPass->init(vulkanRenderer, deferredRenderPass, 1, sceneData);
 
         sceneData->lookAtSceneCenter();
 
@@ -94,7 +94,7 @@ namespace VulkanEngine
 
         VkCommandBuffer currentCommandBuffer = vulkanRenderer->getCurrentCommandBuffer();
 
-        if (vulkanRenderer->beginPresent(std::bind(&MainRenderPass::recreate, mainRenderPass)))
+        if (vulkanRenderer->beginPresent(std::bind(&DeferredRenderPass::recreate, deferredRenderPass)))
         {
             return;
         }
@@ -227,7 +227,7 @@ namespace VulkanEngine
 
                 deferredRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
             }
-
+            
             vkCmdNextSubpass(currentCommandBuffer, VK_SUBPASS_CONTENTS_INLINE);
             
             vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].pipeline);
@@ -237,18 +237,18 @@ namespace VulkanEngine
             
             deferredRenderPass->draw(currentCommandBuffer, 3);
 
-            //UIRenderPass->draw(currentCommandBuffer, 0);
+            UIRenderPass->draw(currentCommandBuffer, 0);
 
             vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
         }
 
-        vulkanRenderer->endPresent(std::bind(&MainRenderPass::recreate, mainRenderPass));
+        vulkanRenderer->endPresent(std::bind(&DeferredRenderPass::recreate, deferredRenderPass));
     }
 
     void Renderer::quit()
     {
         //mainRenderPass->clear();
-        //UIRenderPass->clear();
+        UIRenderPass->clear();
         directionalLightShadowMapPass->clear();
         deferredRenderPass->clear();
         sceneData->clear();

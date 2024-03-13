@@ -10,7 +10,7 @@ namespace VulkanEngine
 	class UIPass : public VulkanRenderPass
 	{
 	public:
-		void init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass, VulkanRenderSceneData* sceneData);
+		void init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass, uint32_t subpassIndex, VulkanRenderSceneData* sceneData);
 		void postInit() override;
 
 		void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) override;

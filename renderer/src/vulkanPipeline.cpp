@@ -117,6 +117,12 @@ namespace VulkanEngine
 		depthStencilStateCI.depthTestEnable = depthTest;
 		depthStencilStateCI.depthWriteEnable = depthWrite;
 		depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS;
+		
+		if (depthTest == false && depthWrite == false)
+		{
+			depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+		}
+		
 		depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
 		depthStencilStateCI.stencilTestEnable = VK_FALSE;
 

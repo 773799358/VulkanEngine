@@ -16,6 +16,8 @@ namespace VulkanEngine
 		void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) override;
 		void clear() override;
 
+		void recreate();
+
 		std::vector<VkFramebuffer> swapChainFrameBuffers;
 
 	private:

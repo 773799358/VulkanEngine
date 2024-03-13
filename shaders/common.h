@@ -1,5 +1,3 @@
-precision highp float;
-precision highp int;
 
 #define PI 3.14159265358979323846
 
@@ -58,6 +56,8 @@ vec3 gamma(vec3 color)
 }
 
 highp vec2 ndcxyToUv(highp vec2 ndcxy) { return ndcxy * vec2(0.5, 0.5) + vec2(0.5, 0.5); }
+
+highp vec2 uvToNdcxy(highp vec2 uv) { return uv * vec2(2.0, 2.0) + vec2(-1.0, -1.0); }
 
 float calculateShadow(sampler2D shadowMap, vec3 worldPos, mat4 shadowProjView)
 {

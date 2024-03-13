@@ -36,6 +36,12 @@ namespace VulkanEngine
 		glm::mat4 directionalLightProjView = glm::mat4(1.0f);
 	};
 
+	struct DeferredUniformBufferObject
+	{
+		glm::mat4 projView = glm::mat4(1.0f);
+		UniformBufferObjectFS viewAndLight;
+	};
+
 	struct alignas(64) UniformBufferDynamicObject
 	{
 		glm::mat4 model = glm::mat4(1.0f);
@@ -148,6 +154,7 @@ namespace VulkanEngine
 
 		VulkanDescriptor uniformDescriptor;
 		VulkanDescriptor PBRMaterialDescriptor;
+		VulkanDescriptor deferredUniformDescriptor;
 
 		Node* rootNode = nullptr;
 		std::vector<Node*> nodes;

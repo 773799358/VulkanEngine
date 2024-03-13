@@ -1,4 +1,7 @@
-#version 310 es
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_shader_texture_lod: enable
+#extension GL_OES_standard_derivatives : enable
 
 #extension GL_GOOGLE_include_directive : enable
 

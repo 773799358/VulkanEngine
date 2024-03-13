@@ -8,7 +8,7 @@
 namespace VulkanEngine
 {
 
-	void UIPass::init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass, VulkanRenderSceneData* sceneData)
+	void UIPass::init(VulkanRenderer* vulkanRender, VulkanRenderPass* mainPass, uint32_t subpassIndex, VulkanRenderSceneData* sceneData)
 	{
 		VulkanRenderPass::init(vulkanRender, sceneData);
 
@@ -26,6 +26,7 @@ namespace VulkanEngine
 		initInfo.MinImageCount = vulkanRender->MAX_FRAMES_IN_FLIGHT;
 		initInfo.ImageCount = vulkanRender->MAX_FRAMES_IN_FLIGHT;
 
+		initInfo.Subpass = subpassIndex;
 		initInfo.RenderPass = mainPass->renderPass;
 		initInfo.MSAASamples = vulkanRender->msaaSamples;
 		ImGui_ImplVulkan_Init(&initInfo);

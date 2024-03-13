@@ -367,7 +367,7 @@ namespace VulkanEngine
 		uboLayoutBinding[0].binding = 0;
 		uboLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		uboLayoutBinding[0].descriptorCount = 1;
-		uboLayoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;		// 仅在顶点着色器访问
+		uboLayoutBinding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		uboLayoutBinding[0].pImmutableSamplers = nullptr;
 
 		uboLayoutBinding[1].binding = 1;

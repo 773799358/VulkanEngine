@@ -75,7 +75,7 @@ namespace VulkanEngine
 			}
 		}
 
-		//ImGui_ImplSDL2_ProcessEvent(&event);
+		ImGui_ImplSDL2_ProcessEvent(&event);
 	}
 
 	bool Window::shouldClose()

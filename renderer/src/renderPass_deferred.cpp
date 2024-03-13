@@ -36,7 +36,61 @@ namespace VulkanEngine
 
 	void DeferredRenderPass::clear()
 	{
+		vkQueueWaitIdle(vulkanRender->graphicsQueue);
+		for (const auto& frameBuffer : frameBuffers)
+		{
+			for (const auto& attachment : frameBuffer.attachments)
+			{
+				vkDestroyImage(vulkanRender->device, attachment.image, nullptr);
+				vkDestroyImageView(vulkanRender->device, attachment.imageView, nullptr);
+				vkFreeMemory(vulkanRender->device, attachment.memory, nullptr);
+			}
+		}
 
+		for (const auto& frameBuffer : swapChainFrameBuffers)
+		{
+			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);
+		}
+
+		for (uint32_t i = 0; i < renderPipelines.size(); i++)
+		{
+			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
+			vkDestroyPipelineLayout(vulkanRender->device, renderPipelines[i].layout, nullptr);
+		}
+
+		vkDestroyDescriptorSetLayout(vulkanRender->device, descriptorInfos[0].layout, nullptr);
+		vkFreeDescriptorSets(vulkanRender->device, vulkanRender->descriptorPool, 1, &descriptorInfos[0].descriptorSet);
+
+		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
+	}
+
+	void DeferredRenderPass::recreate()
+	{
+		for (const auto& frameBuffer : frameBuffers)
+		{
+			for (const auto& attachment : frameBuffer.attachments)
+			{
+				vkDestroyImage(vulkanRender->device, attachment.image, nullptr);
+				vkDestroyImageView(vulkanRender->device, attachment.imageView, nullptr);
+				vkFreeMemory(vulkanRender->device, attachment.memory, nullptr);
+			}
+		}
+
+		for (const auto& frameBuffer : swapChainFrameBuffers)
+		{
+			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);
+		}
+
+		for (uint32_t i = 0; i < renderPipelines.size(); i++)
+		{
+			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
+			vkDestroyPipelineLayout(vulkanRender->device, renderPipelines[i].layout, nullptr);
+		}
+
+		setupAttachments();
+		setupRenderPass();
+		setupFrameBuffers();
+		setupPipelines();
 	}
 
 	void DeferredRenderPass::setupAttachments()
@@ -116,7 +170,7 @@ namespace VulkanEngine
 			depthAttachmentDescription.format = vulkanRender->depthImageFormat;
 			depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
 			depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;	// TODO:STORE
+			depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;	// TODO:STORE
 			depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			depthAttachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			depthAttachmentDescription.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -136,9 +190,14 @@ namespace VulkanEngine
 		// subpass
 		std::array<VkSubpassDescription, 2> subpasses = {};
 		std::array<VkSubpassDependency, 3> dependencies = {};
+
+		// gbuffer pass
+		std::array<VkAttachmentReference, 3> gbufferAttachmentReference = {};
+		// lighting pass
+		std::array<VkAttachmentReference, 4> deferredLightingPassInputAttachementReference = {};
+
+		std::array<VkAttachmentReference, 1> deferredLightingPassOutputColorAttachmentReference = {};
 		{
-			// gbuffer pass
-			std::array<VkAttachmentReference, 3> gbufferAttachmentReference = {};
 			gbufferAttachmentReference[0].attachment = 0;
 			gbufferAttachmentReference[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			
@@ -160,8 +219,6 @@ namespace VulkanEngine
 			gbufferPass.preserveAttachmentCount = 0;
 			gbufferPass.pPreserveAttachments = nullptr;
 
-			// lighting pass
-			std::array<VkAttachmentReference, 4> deferredLightingPassInputAttachementReference = {};
 			deferredLightingPassInputAttachementReference[0].attachment = 0;
 			deferredLightingPassInputAttachementReference[0].layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
@@ -174,7 +231,6 @@ namespace VulkanEngine
 			deferredLightingPassInputAttachementReference[3].attachment = 3;
 			deferredLightingPassInputAttachementReference[3].layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-			std::array<VkAttachmentReference, 1> deferredLightingPassOutputColorAttachmentReference = {};
 			deferredLightingPassOutputColorAttachmentReference[0].attachment = 4;
 			deferredLightingPassOutputColorAttachmentReference[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
