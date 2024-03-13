@@ -65,10 +65,10 @@ namespace VulkanEngine
         directionalLightShadowMapPass = new DirectionalLightShadowMapRenderPass();
         directionalLightShadowMapPass->init(vulkanRenderer, sceneData);
 
+        sceneData->createDirectionalLightShadowDescriptorSet(directionalLightShadowMapPass->frameBuffers[0].attachments[0].imageView);
+
         mainRenderPass = new MainRenderPass();
         mainRenderPass->init(vulkanRenderer, sceneData);
-        mainRenderPass->setDirectionalLightShadowMapView(directionalLightShadowMapPass->frameBuffers[0].attachments[0].imageView);
-        mainRenderPass->postInit();
 
         UIRenderPass = new UIPass();
         UIRenderPass->init(vulkanRenderer, mainRenderPass, sceneData);
@@ -120,7 +120,7 @@ namespace VulkanEngine
             {
                 uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
 
-                VkDescriptorSet set[1] = { directionalLightShadowMapPass->descriptor.descriptorSet };
+                VkDescriptorSet set[1] = { directionalLightShadowMapPass->descriptorInfos[0].descriptorSet };
                 vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, directionalLightShadowMapPass->renderPipelines[0].layout, 0, 1, set, 1, &dynamicOffset);
 
                 VkBuffer vertexBuffers[] = { sceneData->vertexResource.buffer };
@@ -162,7 +162,7 @@ namespace VulkanEngine
             {
                 uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
 
-                std::array<VkDescriptorSet, 3> sets = { sceneData->uniformDescriptor.descriptorSet[0], sceneData->meshes[i]->material->descriptorSet, mainRenderPass->shadowDepthDataDescriptor.descriptorSet };
+                std::array<VkDescriptorSet, 3> sets = { sceneData->uniformDescriptor.descriptorSet[0], sceneData->meshes[i]->material->descriptorSet, sceneData->directionalLightShadowDescriptor.descriptorSet[0] };
                 vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, sets.size(), sets.data(), 1, &dynamicOffset);
 
                 VkBuffer vertexBuffers[] = { sceneData->vertexResource.buffer };

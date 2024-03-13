@@ -49,7 +49,7 @@ namespace VulkanEngine
 	struct VulkanDescriptor
 	{
 		VkDescriptorSetLayout layout;
-		std::vector<VkDescriptorSet> descriptorSet;
+		std::vector<VkDescriptorSet> descriptorSet;			// 多个的设计是为了多帧用的
 	};
 
 	struct Vertex
@@ -62,8 +62,8 @@ namespace VulkanEngine
 		glm::vec2 texcoord;
 		glm::vec3 tangent;
 
-		static std::array<VkVertexInputBindingDescription, 1> getBindingDescriptions();
-		static std::array<VkVertexInputAttributeDescription, 5> getAttributeDescriptions();
+		static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
+		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 
 		bool operator== (const Vertex& other) const;
 	};
@@ -135,6 +135,8 @@ namespace VulkanEngine
 		// 配置好场景数据后调用
 		void setupRenderData();
 
+		void createDirectionalLightShadowDescriptorSet(VkImageView& directionalLightShadowView);
+
 		// TODO:场景非uniform数据更新后续再处理
 		void updateUniformRenderData();
 
@@ -157,6 +159,8 @@ namespace VulkanEngine
 		std::string shaderVSFliePath;
 		std::string shaderFSFilePath;
 
+		std::string GBufferFSFilePath;
+
 		std::string shadowVSFilePath;
 		std::string shadowFSFilePath;
 
@@ -174,6 +178,7 @@ namespace VulkanEngine
 
 		VulkanResource uniformShadowResource;
 		UnifromBufferObjectShadowProjView uniformBufferShadowVSObject;
+		VulkanDescriptor directionalLightShadowDescriptor;
 
 		glm::mat4 rotate = glm::mat4(1.0);
 

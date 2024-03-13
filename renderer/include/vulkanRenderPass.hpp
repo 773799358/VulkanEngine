@@ -40,7 +40,7 @@ namespace VulkanEngine
 		};
 
 		VkRenderPass renderPass;
-		VulkanDescriptor descriptor;
+		std::vector<VulkanDescriptor> descriptorInfos;
 		std::vector<VulkanRenderPipeline> renderPipelines;
 		std::vector<VulkanFrameBuffer> frameBuffers;
 

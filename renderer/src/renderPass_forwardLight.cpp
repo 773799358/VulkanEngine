@@ -2,20 +2,21 @@
 #include "macro.hpp"
 #include "vulkanUtil.hpp"
 #include "vulkanScene.hpp"
+#include "vulkanPipeline.hpp"
 
 namespace VulkanEngine
 {
 	void MainRenderPass::init(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData)
 	{
 		VulkanRenderPass::init(vulkanRender, sceneData);
+		setupRenderPass();
+		setupPipelines();
+		setupFrameBuffers();
 	}
 
 	void MainRenderPass::postInit()
 	{
-		setupDirectionalLightShadowDescriptor();
-		setupRenderPass();
-		setupPipelines();
-		setupFrameBuffers();
+
 	}
 
 	void MainRenderPass::drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize)
@@ -64,9 +65,6 @@ namespace VulkanEngine
 		vkDestroyImageView(vulkanRender->device, colorAttachment.imageView, nullptr);
 		vkFreeMemory(vulkanRender->device, colorAttachment.memory, nullptr);
 
-		vkDestroyDescriptorSetLayout(vulkanRender->device, shadowDepthDataDescriptor.layout, nullptr);
-		vkFreeDescriptorSets(vulkanRender->device, vulkanRender->descriptorPool, 1, &shadowDepthDataDescriptor.descriptorSet);
-
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
 		{
 			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
@@ -74,11 +72,6 @@ namespace VulkanEngine
 		}
 
 		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
-	}
-
-	void MainRenderPass::setDirectionalLightShadowMapView(VkImageView imageView)
-	{
-		this->directionalLightShadowMapView = imageView;
 	}
 
 	void MainRenderPass::setupRenderPass()
@@ -167,132 +160,7 @@ namespace VulkanEngine
 	{
 		renderPipelines.resize(1);
 
-		// 配置一次subpass的状态，DX内对应PipelineStateObject
-		auto vertShaderCode = VulkanUtil::readFile(sceneData->shaderVSFliePath);
-		auto fragShaderCode = VulkanUtil::readFile(sceneData->shaderFSFilePath);
-
-		// shaderModule只是字节码的容器，仅在渲染管线处理过程中需要，设置完就可以销毁
-		VkShaderModule vertShaderModule = vulkanRender->createShaderModule(vertShaderCode);
-		VkShaderModule fragShaderModule = vulkanRender->createShaderModule(fragShaderCode);
-
-		// 真正和pipeline产生联系的是shaderStage
-		VkPipelineShaderStageCreateInfo vertShaderStageInfo = {};
-		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-		vertShaderStageInfo.module = vertShaderModule;
-		vertShaderStageInfo.pName = "main";				// 入口函数
-
-		// 设置常量，可以编译阶段进行优化
-		//vertShaderStageInfo.pSpecializationInfo = nullptr;
-
-		VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
-		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		fragShaderStageInfo.module = fragShaderModule;
-		fragShaderStageInfo.pName = "main";				// 入口函数
-
-		VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
-
-		// 1.输入的顶点数据描述
-		auto bindingDescription = Vertex::getBindingDescriptions();
-		auto attributeDescriptions = Vertex::getAttributeDescriptions();
-
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescription.size());
-		vertexInputInfo.pVertexBindingDescriptions = bindingDescription.data();
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());;
-		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
-
-		// 2.绘制的几何图元拓扑类型
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-		inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-		// 3.视窗和裁剪
-
-		VkPipelineViewportStateCreateInfo viewportStateInfo = {};
-		viewportStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-		viewportStateInfo.viewportCount = 1;
-		viewportStateInfo.pViewports = &vulkanRender->viewport;
-		viewportStateInfo.scissorCount = 1;
-		viewportStateInfo.pScissors = &vulkanRender->scissor;
-
-		// 4.光栅化状态
-		VkPipelineRasterizationStateCreateInfo rasterizationStateInfo = {};
-		rasterizationStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-		rasterizationStateInfo.depthClampEnable = VK_FALSE;				// 超过远近平面的片元直接丢弃
-		rasterizationStateInfo.rasterizerDiscardEnable = VK_FALSE;		// true代表所有图元都不会进入光栅化，禁止任何输出到frameBuffer的方法
-		rasterizationStateInfo.polygonMode = VK_POLYGON_MODE_FILL;		// 填充，也可以绘制点、线
-		rasterizationStateInfo.lineWidth = 1.0f;						// 大于1.0的线需要GPU wideLines支持
-		//rasterizationStateInfo.cullMode = VK_CULL_MODE_NONE;
-		rasterizationStateInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizationStateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;		// 顺时针为正，这里要注意，vulkan的NDC，Y是向下的
-		// 暂时不用深度偏移
-		rasterizationStateInfo.depthBiasEnable = VK_FALSE;
-		rasterizationStateInfo.depthBiasConstantFactor = 0.0f;
-		rasterizationStateInfo.depthBiasClamp = 0.0f;
-		rasterizationStateInfo.depthBiasSlopeFactor = 0.0f;
-
-		// 5.重采样
-		// 暂时关闭MSAA
-		VkPipelineMultisampleStateCreateInfo multisamplingInfo = {};
-		multisamplingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-		multisamplingInfo.sampleShadingEnable = VK_FALSE;
-		multisamplingInfo.rasterizationSamples = vulkanRender->msaaSamples;		// NxMSAA
-		multisamplingInfo.minSampleShading = 1.0f;
-		multisamplingInfo.pSampleMask = nullptr;
-		multisamplingInfo.alphaToCoverageEnable = VK_FALSE;
-		multisamplingInfo.alphaToOneEnable = VK_FALSE;
-
-		// 6.深度和模板测试
-		VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo = {};
-		depthStencilCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencilCreateInfo.depthTestEnable = VK_TRUE;
-		depthStencilCreateInfo.depthWriteEnable = VK_TRUE;
-		depthStencilCreateInfo.depthCompareOp = VK_COMPARE_OP_LESS; 
-		depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
-		depthStencilCreateInfo.stencilTestEnable = VK_FALSE;
-
-		// 7.color blend
-		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
-		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_FALSE;	// 不开启会混合直接覆盖
-		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
-
-		// 全局混合设置（关闭，开启后会自动禁止attachment的color blend）
-		VkPipelineColorBlendStateCreateInfo colorBlendingStateInfo = {};
-		colorBlendingStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-		colorBlendingStateInfo.logicOpEnable = VK_FALSE;
-		colorBlendingStateInfo.logicOp = VK_LOGIC_OP_COPY;
-		colorBlendingStateInfo.attachmentCount = 1;
-		colorBlendingStateInfo.pAttachments = &colorBlendAttachment;
-		colorBlendingStateInfo.blendConstants[0] = 0.0f;
-		colorBlendingStateInfo.blendConstants[1] = 0.0f;
-		colorBlendingStateInfo.blendConstants[2] = 0.0f;
-		colorBlendingStateInfo.blendConstants[3] = 0.0f;
-
-		// 8.动态部分
-		VkDynamicState dynamicStates[] =
-		{
-			VK_DYNAMIC_STATE_VIEWPORT,
-			VK_DYNAMIC_STATE_SCISSOR
-		};
-
-		VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
-		dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		dynamicStateInfo.dynamicStateCount = 2;
-		dynamicStateInfo.pDynamicStates = dynamicStates;
-
-		// 9.管线布局
-		std::array<VkDescriptorSetLayout, 3> descriptorSetLayout = { sceneData->uniformDescriptor.layout, sceneData->PBRMaterialDescriptor.layout, shadowDepthDataDescriptor.layout };
+		std::array<VkDescriptorSetLayout, 3> descriptorSetLayout = { sceneData->uniformDescriptor.layout, sceneData->PBRMaterialDescriptor.layout, sceneData->directionalLightShadowDescriptor.layout };
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -303,31 +171,28 @@ namespace VulkanEngine
 
 		VK_CHECK_RESULT(vkCreatePipelineLayout(vulkanRender->device, &pipelineLayoutInfo, nullptr, &renderPipelines[0].layout));
 
-		VkGraphicsPipelineCreateInfo pipelineInfo = {};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineInfo.stageCount = 2;
-		pipelineInfo.pStages = shaderStages;
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-		pipelineInfo.pViewportState = &viewportStateInfo;
-		pipelineInfo.pRasterizationState = &rasterizationStateInfo;
-		pipelineInfo.pMultisampleState = &multisamplingInfo;
-		pipelineInfo.pDepthStencilState = &depthStencilCreateInfo;
-		pipelineInfo.pColorBlendState = &colorBlendingStateInfo;
-		pipelineInfo.pDynamicState = nullptr;
+		// 配置一次subpass的状态，DX内对应PipelineStateObject
+		auto vertShaderCode = VulkanUtil::readFile(sceneData->shaderVSFliePath);
+		auto fragShaderCode = VulkanUtil::readFile(sceneData->shaderFSFilePath);
 
-		pipelineInfo.layout = renderPipelines[0].layout;
+		auto bindingDescriptions = Vertex::getBindingDescriptions();
+		auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
-		pipelineInfo.renderPass = renderPass;
-		pipelineInfo.subpass = 0;
+		std::vector<VkDynamicState> dynamicStates =
+		{
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_SCISSOR
+		};
 
-		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-		pipelineInfo.basePipelineIndex = -1;
-
-		VK_CHECK_RESULT(vkCreateGraphicsPipelines(vulkanRender->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &renderPipelines[0].pipeline));
-
-		vkDestroyShaderModule(vulkanRender->device, fragShaderModule, nullptr);
-		vkDestroyShaderModule(vulkanRender->device, vertShaderModule, nullptr);
+		VulkanPipeline::createPipeline(vulkanRender, renderPipelines[0].pipeline,
+			renderPipelines[0].layout,
+			vertShaderCode, fragShaderCode,
+			bindingDescriptions, attributeDescriptions,
+			renderPass,
+			0,
+			vulkanRender->viewport, vulkanRender->scissor,
+			vulkanRender->msaaSamples,
+			dynamicStates);
 	}
 
 	void MainRenderPass::setupFrameBuffers()
@@ -380,71 +245,6 @@ namespace VulkanEngine
 
 			VK_CHECK_RESULT(vkCreateFramebuffer(vulkanRender->device, &frameBufferInfo, nullptr, &frameBuffers[i].frameBuffer));
 		}
-	}
-
-	void MainRenderPass::setupDirectionalLightShadowDescriptor()
-	{
-		VkDescriptorSetLayoutBinding binding[2] = {};
-
-		binding[0].binding = 0;
-		binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		binding[0].descriptorCount = 1;
-		binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		binding[1].binding = 1;
-		binding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		binding[1].descriptorCount = 1;
-		binding[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-		VkDescriptorSetLayoutCreateInfo layoutCI = {};
-		layoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutCI.pNext = nullptr;
-		layoutCI.flags = 0;
-		layoutCI.bindingCount = sizeof(binding) / sizeof(binding[0]);
-		layoutCI.pBindings = binding;
-
-		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRender->device, &layoutCI, nullptr, &shadowDepthDataDescriptor.layout));
-
-		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
-		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		descriptorSetAllocateInfo.pNext = nullptr;
-		descriptorSetAllocateInfo.descriptorPool = vulkanRender->descriptorPool;
-		descriptorSetAllocateInfo.descriptorSetCount = 1;
-		descriptorSetAllocateInfo.pSetLayouts = &shadowDepthDataDescriptor.layout;
-
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanRender->device, &descriptorSetAllocateInfo, &shadowDepthDataDescriptor.descriptorSet));
-
-		VkDescriptorImageInfo shadowImageInfo = {};
-		shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		shadowImageInfo.imageView = directionalLightShadowMapView;
-		shadowImageInfo.sampler = vulkanRender->getOrCreateNearestSampler();
-
-		VkDescriptorBufferInfo bufferInfo = {};
-		bufferInfo.offset = 0;
-		bufferInfo.buffer = sceneData->uniformShadowResource.buffer;
-		bufferInfo.range = sizeof(UnifromBufferObjectShadowProjView);
-
-		std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = shadowDepthDataDescriptor.descriptorSet;
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].pBufferInfo = nullptr;
-		descriptorWrites[0].pImageInfo = &shadowImageInfo;
-		descriptorWrites[0].pTexelBufferView = nullptr;
-
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].pNext = nullptr;
-		descriptorWrites[1].dstSet = shadowDepthDataDescriptor.descriptorSet;
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pBufferInfo = &bufferInfo;
-
-		vkUpdateDescriptorSets(vulkanRender->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 
 }

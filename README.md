@@ -4,7 +4,9 @@
 仅支持windows，因为没有苹果电脑和linux环境，后续会对其他平台进行支持，需要安装vulkan的时候需勾选SDL2（安装包已放入项目，建议勾选全部组件），直接执行build_window.bat即可
 然后选择test为启动项，运行，或者进入目录VulkanEngine\build\Release，双击运行test.exe
 
-### 现有功能
+#### 这个小玩具暂时还处于非常简陋的阶段，无论是封装，内存的管理（连个ringbuffer都没有），还是各种工具的运用（SPIRV-CROSS）等等，很初级，不过希望能慢慢丰富起来。现阶段主要是锻炼vulkan出错的调试能力
+
+### 现有功能：
 1. 前向管线
 2. 非透明物体的直接方向光PBR
 3. 前向管线的MSAA
@@ -33,6 +35,7 @@
 || 一个vkCmdBindDescriptorSets调用后的多个draw操作需要更新uniform缓冲数据，应该使用动态uniform缓冲offset ||
 || 考虑使用推送常量(push constants)来设置需要每个draw操作更新的数据 ||
 || 只使用推送常量(push constants)更新小于128字节的需要高频更新的数据。如果不能保证数据小于128字节，备用一个动态uniform缓冲 ||
+|| 使用SPIRV-Cross完成shader反射，自动创建descriptorSet和layout
 | 剔除 ||||
 || 动态角色多，就用八叉树，否则用BVH ||
 || 增加遮挡剔除 ||
@@ -49,17 +52,15 @@
 1. Cmake：版本3.15以上，仅支持windows，后续会对其他平台进行支持，需要安装vulkan的时候勾选SDL2
 2. 暂不使用 VMA 进行内存管理，后续改进
 3. 使用 vulkan.h 后续改为 vulkan.hpp 的可能性不大
-4. shader通过cmake execute_process 执行 glslc 进行编译，后续改进
+4. shader通过cmake execute_process 执行 glslc 生成 SPV，后续改进使用SPIRV CROSS
 5. 有些三方库跟着Renderer一起编译，后续会拿出去（引擎比较小，编译时间很快，暂时就这样吧，懒得改，优先级比较后面）
 6. 暂时只有基础渲染功能，管线支持也比较少，连Renderer都称不上，更不能说是个Engine，希望有持续维护的动力
 
 ## 2024.3.4
 
-1. 不借用了，自己全都写一遍，比较好，借用的接口也不太熟悉，会忘记调用
-2. 想用VMA，看了一下Piccolo的用法
-3. 整体结构调整，变得更加合理，框架上更加清晰，更有利于扩展和后续减少代码量
-4. 代码基本都堆在了vulkanRenderer里面，后面拆出去，对更多类型进行封装
-5. 很多代码都是从tutorial拿过来的，所以不会做队列间共享资源的支持
+1. 整体结构调整，变得更加合理，框架上更加清晰，更有利于扩展和后续减少代码量
+2. 代码基本都堆在了vulkanRenderer里面，后面拆出去，对更多类型进行封装
+3. 很多代码都是从tutorial拿过来的，所以不会做队列间共享资源的支持
 
 ## 2024.3.5
 
@@ -86,7 +87,7 @@
 
 ## 2024.3.9
 
-1. 平行光Cook-Torrance PBR
+1. 平行光Cook-Torrance PBR（没有进行 Kulla-Conty 能量补偿）
 2. 对texture包含在文件中，例如：GLB，进行贴图支持，构建image samlper以miplevels为key，进行共用
 3. gamma矫正 + toneMapping
 
@@ -99,4 +100,7 @@
 
 ## 2024.3.12
 1. shadow PCF
-2. 延迟渲染
+2. 延迟渲染（一部分）
+
+## 2024.3.13
+1. 延迟渲染

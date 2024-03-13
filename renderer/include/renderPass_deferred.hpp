@@ -1,31 +1,34 @@
 ﻿#pragma once
 
-#include "vulkan/vulkan.h"
-#include <vector>
 #include "vulkanRenderer.hpp"
 #include "vulkanRenderPass.hpp"
 #include "vulkanScene.hpp"
 
 namespace VulkanEngine
 {
-	class MainRenderPass : public VulkanRenderPass
+	class DeferredRenderPass : public VulkanRenderPass
 	{
 	public:
 		void init(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData) override;
 		void postInit() override;
 
-		void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) override;
 		void drawIndexed(VkCommandBuffer commandBuffer, uint32_t indexSize) override;
-		void recreate();
+		void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) override;
 		void clear() override;
 
+		void setDirectionalLightShadowMapView(VkImageView imageView);
+
 	private:
+
+		void setupAttachments();
 		void setupRenderPass();
-		void setupPipelines();
 		void setupFrameBuffers();
+		void setupDescriptorSetLayout();
+		void setupPipelines();
+		void setupDescriptorSet();
+
+		std::vector<VkFramebuffer> swapChainFrameBuffers;
 
 		VkImageView directionalLightShadowMapView = VK_NULL_HANDLE;
-
-		VulkanFrameBufferAttachment colorAttachment;
 	};
 }

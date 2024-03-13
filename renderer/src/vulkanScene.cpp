@@ -7,20 +7,20 @@
 
 namespace VulkanEngine
 {
-	std::array<VkVertexInputBindingDescription, 1> Vertex::getBindingDescriptions()
+	std::vector<VkVertexInputBindingDescription> Vertex::getBindingDescriptions()
 	{
-		std::array<VkVertexInputBindingDescription, 1> bindingDescription = {};
+		std::vector<VkVertexInputBindingDescription> bindingDescriptions = { {} };
+		
+		bindingDescriptions[0].binding = 0;
+		bindingDescriptions[0].stride = sizeof(Vertex);
+		bindingDescriptions[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;		// 暂不使用instance
 
-		bindingDescription[0].binding = 0;
-		bindingDescription[0].stride = sizeof(Vertex);
-		bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;		// 暂不使用instance
-
-		return bindingDescription;
+		return bindingDescriptions;
 	}
 
-	std::array<VkVertexInputAttributeDescription, 5> Vertex::getAttributeDescriptions()
+	std::vector<VkVertexInputAttributeDescription> Vertex::getAttributeDescriptions()
 	{
-		std::array<VkVertexInputAttributeDescription, 5> attributeDescriptions = {};
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions = { {}, {}, {}, {}, {} };
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -86,6 +86,8 @@ namespace VulkanEngine
 		shaderVSFliePath = shaderDir + "vs" + ".vert.spv";
 		shaderFSFilePath = shaderDir + shaderName + ".frag.spv";
 
+		GBufferFSFilePath = shaderDir + "gbuffer" + ".frag.spv";
+
 		shadowVSFilePath = shaderDir + "directionalLightShadow" + ".vert.spv";
 		shadowFSFilePath = shaderDir + "directionalLightShadow" + ".frag.spv";
 
@@ -135,6 +137,7 @@ namespace VulkanEngine
 
 		for (size_t i = 0; i < materials.size(); i++)
 		{
+			vkFreeDescriptorSets(device, vulkanRenderer->descriptorPool, 1, &materials[i]->descriptorSet);
 			delete materials[i];
 		}
 
@@ -151,7 +154,13 @@ namespace VulkanEngine
 		vkFreeMemory(device, uniformShadowResource.memory, nullptr);
 
 		vkDestroyDescriptorSetLayout(device, uniformDescriptor.layout, nullptr);
+		vkFreeDescriptorSets(device, vulkanRenderer->descriptorPool, uniformDescriptor.descriptorSet.size(), uniformDescriptor.descriptorSet.data());
 		vkDestroyDescriptorSetLayout(device, PBRMaterialDescriptor.layout, nullptr);
+		if (directionalLightShadowDescriptor.layout != VK_NULL_HANDLE)
+		{
+			vkDestroyDescriptorSetLayout(device, directionalLightShadowDescriptor.layout, nullptr);
+			vkFreeDescriptorSets(device, vulkanRenderer->descriptorPool, directionalLightShadowDescriptor.descriptorSet.size(), directionalLightShadowDescriptor.descriptorSet.data());
+		}
 	}
 
 	void VulkanRenderSceneData::updateUniformRenderData()
@@ -322,7 +331,6 @@ namespace VulkanEngine
 
 	void VulkanRenderSceneData::createPBRDescriptorLayout()
 	{
-		// set = 1
 		// diffuse
 		VkDescriptorSetLayoutBinding PBRLayoutBinding[3] = {};
 		PBRLayoutBinding[0].binding = 0;
@@ -563,6 +571,73 @@ namespace VulkanEngine
 		descriptorWrites[2].pTexelBufferView = nullptr;
 
 		vkUpdateDescriptorSets(vulkanRender->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+	}
+
+	void VulkanRenderSceneData::createDirectionalLightShadowDescriptorSet(VkImageView& directionalLightShadowView)
+	{
+		VkDescriptorSetLayoutBinding binding[2] = {};
+
+		binding[0].binding = 0;
+		binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		binding[0].descriptorCount = 1;
+		binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		binding[1].binding = 1;
+		binding[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		binding[1].descriptorCount = 1;
+		binding[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+		VkDescriptorSetLayoutCreateInfo layoutCI = {};
+		layoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutCI.pNext = nullptr;
+		layoutCI.flags = 0;
+		layoutCI.bindingCount = sizeof(binding) / sizeof(binding[0]);
+		layoutCI.pBindings = binding;
+
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRenderer->device, &layoutCI, nullptr, &directionalLightShadowDescriptor.layout));
+
+		directionalLightShadowDescriptor.descriptorSet.resize(1);
+
+		VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
+		descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		descriptorSetAllocateInfo.pNext = nullptr;
+		descriptorSetAllocateInfo.descriptorPool = vulkanRenderer->descriptorPool;
+		descriptorSetAllocateInfo.descriptorSetCount = 1;
+		descriptorSetAllocateInfo.pSetLayouts = &directionalLightShadowDescriptor.layout;
+
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanRenderer->device, &descriptorSetAllocateInfo, &directionalLightShadowDescriptor.descriptorSet[0]));
+
+		VkDescriptorImageInfo shadowImageInfo = {};
+		shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		shadowImageInfo.imageView = directionalLightShadowView;
+		shadowImageInfo.sampler = vulkanRenderer->getOrCreateNearestSampler();
+
+		VkDescriptorBufferInfo bufferInfo = {};
+		bufferInfo.offset = 0;
+		bufferInfo.buffer = uniformShadowResource.buffer;
+		bufferInfo.range = sizeof(UnifromBufferObjectShadowProjView);
+
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = directionalLightShadowDescriptor.descriptorSet[0];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = nullptr;
+		descriptorWrites[0].pImageInfo = &shadowImageInfo;
+		descriptorWrites[0].pTexelBufferView = nullptr;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].pNext = nullptr;
+		descriptorWrites[1].dstSet = directionalLightShadowDescriptor.descriptorSet[0];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pBufferInfo = &bufferInfo;
+
+		vkUpdateDescriptorSets(vulkanRenderer->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 
 	Mesh* VulkanRenderSceneData::createCube()
