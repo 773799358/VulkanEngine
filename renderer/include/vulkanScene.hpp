@@ -161,6 +161,9 @@ namespace VulkanEngine
 
 		std::string GBufferFSFilePath;
 
+		std::string deferredLightingVSFilePath;
+		std::string deferredLightingFSFilePath;
+
 		std::string shadowVSFilePath;
 		std::string shadowFSFilePath;
 

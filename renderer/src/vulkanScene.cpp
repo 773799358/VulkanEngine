@@ -88,6 +88,9 @@ namespace VulkanEngine
 
 		GBufferFSFilePath = shaderDir + "gbuffer" + ".frag.spv";
 
+		deferredLightingVSFilePath = shaderDir + "deferredLighting" + ".vert.spv";
+		deferredLightingFSFilePath = shaderDir + "deferredLighting" + ".frag.spv";
+
 		shadowVSFilePath = shaderDir + "directionalLightShadow" + ".vert.spv";
 		shadowFSFilePath = shaderDir + "directionalLightShadow" + ".frag.spv";
 

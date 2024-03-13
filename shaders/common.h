@@ -1,8 +1,14 @@
+precision highp float;
+precision highp int;
 
 #define PI 3.14159265358979323846
 
 // 平方函数，square
-float sqr(float x) { return x*x; }
+highp float sqr(float x) { return x*x; }
+
+highp vec3 EncodeNormal(highp vec3 N) { return N * 0.5 + 0.5; }
+
+highp vec3 DecodeNormal(highp vec3 N) { return N * 2.0 - 1.0; }
 
 vec3 T;
 vec3 B;
@@ -72,14 +78,14 @@ float calculateShadow(sampler2D shadowMap, vec3 worldPos, mat4 shadowProjView)
     {
         for (int y = -r; y <= r; y++)
         {
-            highp float closestDepth = texture(shadowMap, uv + vec2(dx * x, dy * y)).x + 0.003;
+            highp float closestDepth = texture(shadowMap, uv + vec2(dx * float(x), dy * float(y))).x + 0.003;
             highp float currentDepth = positionNdc.z;
             highp float tempShadow = (closestDepth >= currentDepth) ? 1.0f : 0.0f;
             shadowFactor += tempShadow;
             count++;
         }
     
-        shadow = shadowFactor / count;
+        shadow = shadowFactor / float(count);
     }
 
     return shadow;

@@ -16,7 +16,7 @@ namespace VulkanEngine
 		void draw(VkCommandBuffer commandBuffer, uint32_t vertexSize) override;
 		void clear() override;
 
-		void setDirectionalLightShadowMapView(VkImageView imageView);
+		std::vector<VkFramebuffer> swapChainFrameBuffers;
 
 	private:
 
@@ -26,9 +26,5 @@ namespace VulkanEngine
 		void setupDescriptorSetLayout();
 		void setupPipelines();
 		void setupDescriptorSet();
-
-		std::vector<VkFramebuffer> swapChainFrameBuffers;
-
-		VkImageView directionalLightShadowMapView = VK_NULL_HANDLE;
 	};
 }

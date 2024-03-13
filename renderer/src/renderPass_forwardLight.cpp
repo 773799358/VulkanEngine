@@ -184,6 +184,10 @@ namespace VulkanEngine
 			VK_DYNAMIC_STATE_SCISSOR
 		};
 
+		std::array<VkPipelineColorBlendAttachmentState, 1> colorBlendAttachmentState = {};
+		colorBlendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		colorBlendAttachmentState[0].blendEnable = VK_FALSE;
+
 		VulkanPipeline::createPipeline(vulkanRender, renderPipelines[0].pipeline,
 			renderPipelines[0].layout,
 			vertShaderCode, fragShaderCode,
@@ -192,7 +196,7 @@ namespace VulkanEngine
 			0,
 			vulkanRender->viewport, vulkanRender->scissor,
 			vulkanRender->msaaSamples,
-			dynamicStates);
+			dynamicStates, 1, colorBlendAttachmentState.data(), true, true);
 	}
 
 	void MainRenderPass::setupFrameBuffers()

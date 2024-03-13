@@ -673,7 +673,9 @@ namespace VulkanEngine
 
     void VulkanRenderer::createFramebufferImageAndView()
     {
+        // TODO:
         msaaSamples = VulkanUtil::getMaxUsableSampleCount(physicalDevice);
+        msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         //if (msaaSamples > VK_SAMPLE_COUNT_4_BIT)
         //{
         //    msaaSamples = VK_SAMPLE_COUNT_4_BIT;

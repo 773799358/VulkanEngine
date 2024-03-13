@@ -234,15 +234,19 @@ namespace VulkanEngine
 
 		std::vector<VkDynamicState> dynamicStates;
 
+		std::array<VkPipelineColorBlendAttachmentState, 1> colorBlendAttachmentState = {};
+		colorBlendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		colorBlendAttachmentState[0].blendEnable = VK_FALSE;
+
 		VulkanPipeline::createPipeline(vulkanRender, renderPipelines[0].pipeline,
 			renderPipelines[0].layout,
 			vertShaderCode, fragShaderCode,
 			vertexBindingDescriptions, vertexAttributeDescriptions,
 			renderPass,
 			0,
-			viewport, scissor,
-			VK_SAMPLE_COUNT_1_BIT,
-			dynamicStates);
+			vulkanRender->viewport, vulkanRender->scissor,
+			vulkanRender->msaaSamples,
+			dynamicStates, 1, colorBlendAttachmentState.data(), true, true);
 	}
 
 	void DirectionalLightShadowMapRenderPass::setupDescriptorSet()

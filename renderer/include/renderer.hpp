@@ -7,6 +7,7 @@
 #include "renderPass_forwardLight.hpp"
 #include "renderPass_UI.hpp"
 #include "renderPass_directionalLightShadow.hpp"
+#include "renderPass_deferred.hpp"
 #include "vulkanScene.hpp"
 
 #include <chrono>
@@ -30,6 +31,7 @@ namespace VulkanEngine
         UIPass* UIRenderPass = nullptr;
         MainRenderPass* mainRenderPass = nullptr;
         DirectionalLightShadowMapRenderPass* directionalLightShadowMapPass = nullptr;
+        DeferredRenderPass* deferredRenderPass = nullptr;
 
         VulkanRenderSceneData* sceneData = nullptr;
 

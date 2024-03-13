@@ -67,11 +67,14 @@ namespace VulkanEngine
 
         sceneData->createDirectionalLightShadowDescriptorSet(directionalLightShadowMapPass->frameBuffers[0].attachments[0].imageView);
 
-        mainRenderPass = new MainRenderPass();
-        mainRenderPass->init(vulkanRenderer, sceneData);
+        deferredRenderPass = new DeferredRenderPass();
+        deferredRenderPass->init(vulkanRenderer, sceneData);
 
-        UIRenderPass = new UIPass();
-        UIRenderPass->init(vulkanRenderer, mainRenderPass, sceneData);
+        //mainRenderPass = new MainRenderPass();
+        //mainRenderPass->init(vulkanRenderer, sceneData);
+
+        //UIRenderPass = new UIPass();
+        //UIRenderPass->init(vulkanRenderer, deferredRenderPass, sceneData);
 
         sceneData->lookAtSceneCenter();
 
@@ -138,23 +141,71 @@ namespace VulkanEngine
             vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
         }
 
-        // light
+        // ForwardLighting
+        //{
+        //    VkRenderPassBeginInfo renderPassInfo = {};
+        //    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        //    renderPassInfo.renderPass = mainRenderPass->renderPass;
+        //    renderPassInfo.framebuffer = mainRenderPass->frameBuffers[vulkanRenderer->currentFrameIndex].frameBuffer;
+        //    renderPassInfo.renderArea.offset = { 0, 0 };
+        //    renderPassInfo.renderArea.extent = vulkanRenderer->swapChainExtent;
+        //    VkClearValue clearColors[2];
+        //    clearColors[0].color = { {0.2f, 0.2f, 0.2f, 1.0f} };
+        //    clearColors[1].depthStencil = { 1.0f, 0 };
+        //    renderPassInfo.clearValueCount = sizeof(clearColors) / sizeof(clearColors[0]);
+        //    renderPassInfo.pClearValues = clearColors;
+        //
+        //    vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        //
+        //    vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].pipeline);
+        //
+        //    VkDeviceSize vertexOffset = 0;
+        //    VkDeviceSize indexOffset = 0;
+        //    for (size_t i = 0; i < sceneData->meshes.size(); i++)
+        //    {
+        //        uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
+        //
+        //        std::array<VkDescriptorSet, 3> sets = { sceneData->uniformDescriptor.descriptorSet[0], sceneData->meshes[i]->material->descriptorSet, sceneData->directionalLightShadowDescriptor.descriptorSet[0] };
+        //        vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, sets.size(), sets.data(), 1, &dynamicOffset);
+        //
+        //        VkBuffer vertexBuffers[] = { sceneData->vertexResource.buffer };
+        //        VkDeviceSize vertexOffsets[] = { vertexOffset };
+        //        vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, vertexBuffers, vertexOffsets);
+        //
+        //        vkCmdBindIndexBuffer(currentCommandBuffer, sceneData->indexResource.buffer, indexOffset, VK_INDEX_TYPE_UINT32);
+        //
+        //        vertexOffset += sizeof(Vertex) * sceneData->meshes[i]->vertices.size();
+        //        indexOffset += sizeof(Uint32) * sceneData->meshes[i]->indices.size();
+        //
+        //        mainRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
+        //    }
+        //    UIRenderPass->draw(currentCommandBuffer, 0);
+        //
+        //    vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
+        //}
+
+        // DeferredLighting
         {
             VkRenderPassBeginInfo renderPassInfo = {};
             renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassInfo.renderPass = mainRenderPass->renderPass;
-            renderPassInfo.framebuffer = mainRenderPass->frameBuffers[vulkanRenderer->currentFrameIndex].frameBuffer;
+            renderPassInfo.renderPass = deferredRenderPass->renderPass;
+            renderPassInfo.framebuffer = deferredRenderPass->swapChainFrameBuffers[vulkanRenderer->currentFrameIndex];
             renderPassInfo.renderArea.offset = { 0, 0 };
             renderPassInfo.renderArea.extent = vulkanRenderer->swapChainExtent;
-            VkClearValue clearColors[2];
-            clearColors[0].color = { {0.2f, 0.2f, 0.2f, 1.0f} };
-            clearColors[1].depthStencil = { 1.0f, 0 };
+
+            VkClearValue clearColors[5];
+
+            clearColors[0].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+            clearColors[1].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+            clearColors[2].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+            clearColors[3].depthStencil = { 1.0f, 0 };
+            clearColors[4].color = { {0.2f, 0.2f, 0.2f, 0.2f} };
             renderPassInfo.clearValueCount = sizeof(clearColors) / sizeof(clearColors[0]);
             renderPassInfo.pClearValues = clearColors;
 
             vulkanRenderer->cmdBeginRenderPass(currentCommandBuffer, renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-            vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].pipeline);
+            vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[0].pipeline);
 
             VkDeviceSize vertexOffset = 0;
             VkDeviceSize indexOffset = 0;
@@ -162,8 +213,8 @@ namespace VulkanEngine
             {
                 uint32_t dynamicOffset = i * sizeof(UniformBufferDynamicObject);
 
-                std::array<VkDescriptorSet, 3> sets = { sceneData->uniformDescriptor.descriptorSet[0], sceneData->meshes[i]->material->descriptorSet, sceneData->directionalLightShadowDescriptor.descriptorSet[0] };
-                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mainRenderPass->renderPipelines[0].layout, 0, sets.size(), sets.data(), 1, &dynamicOffset);
+                std::array<VkDescriptorSet, 2> sets = { sceneData->uniformDescriptor.descriptorSet[0], sceneData->meshes[i]->material->descriptorSet };
+                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[0].layout, 0, sets.size(), sets.data(), 1, &dynamicOffset);
 
                 VkBuffer vertexBuffers[] = { sceneData->vertexResource.buffer };
                 VkDeviceSize vertexOffsets[] = { vertexOffset };
@@ -174,9 +225,19 @@ namespace VulkanEngine
                 vertexOffset += sizeof(Vertex) * sceneData->meshes[i]->vertices.size();
                 indexOffset += sizeof(Uint32) * sceneData->meshes[i]->indices.size();
 
-                mainRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
+                deferredRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
             }
-            UIRenderPass->draw(currentCommandBuffer, 0);
+
+            vkCmdNextSubpass(currentCommandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+            
+            vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].pipeline);
+            
+            std::array<VkDescriptorSet, 2> sets = { sceneData->directionalLightShadowDescriptor.descriptorSet[0], deferredRenderPass->descriptorInfos[0].descriptorSet };
+            vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].layout, 0, sets.size(), sets.data(), 0, nullptr);
+            
+            deferredRenderPass->draw(currentCommandBuffer, 3);
+
+            //UIRenderPass->draw(currentCommandBuffer, 0);
 
             vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);
         }
@@ -186,9 +247,10 @@ namespace VulkanEngine
 
     void Renderer::quit()
     {
-        mainRenderPass->clear();
-        UIRenderPass->clear();
+        //mainRenderPass->clear();
+        //UIRenderPass->clear();
         directionalLightShadowMapPass->clear();
+        deferredRenderPass->clear();
         sceneData->clear();
         delete vulkanRenderer;
     }

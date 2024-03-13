@@ -23,6 +23,9 @@ namespace VulkanEngine
 			VkViewport& viewport, 
 			VkRect2D& scissor,
 			VkSampleCountFlagBits samples,
-			std::vector<VkDynamicState>& dynamicStates);
+			std::vector<VkDynamicState>& dynamicStates,
+			uint32_t attachmentCount,
+			VkPipelineColorBlendAttachmentState* colorBlendAttachmentState,
+			bool depthTest, bool depthWrite);
 	};
 }
