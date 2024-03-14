@@ -83,16 +83,22 @@ namespace VulkanEngine
 		// 配置一次subpass的状态，DX内对应PipelineStateObject
 		std::string shaderDir = vulkanRenderer->basePath + "spvs/";
 
-		shaderVSFliePath = shaderDir + "vs" + ".vert.spv";
-		shaderFSFilePath = shaderDir + shaderName + ".frag.spv";
+		std::string vertSPV = ".vert.spv";
+		std::string fragSPV = ".frag.spv";
 
-		GBufferFSFilePath = shaderDir + "gbuffer" + ".frag.spv";
+		shaderVSFliePath = shaderDir + "vs" + vertSPV;
+		shaderFSFilePath = shaderDir + shaderName + fragSPV;
 
-		deferredLightingVSFilePath = shaderDir + "deferredLighting" + ".vert.spv";
-		deferredLightingFSFilePath = shaderDir + "deferredLighting" + ".frag.spv";
+		GBufferFSFilePath = shaderDir + "gbuffer" + fragSPV;
 
-		shadowVSFilePath = shaderDir + "directionalLightShadow" + ".vert.spv";
-		shadowFSFilePath = shaderDir + "directionalLightShadow" + ".frag.spv";
+		deferredLightingVSFilePath = shaderDir + "deferredLighting" + vertSPV;
+		deferredLightingFSFilePath = shaderDir + "deferredLighting" + fragSPV;
+
+		FXAAVSFilePath = shaderDir + "fxaa" + vertSPV;
+		FXAAFSFilePath = shaderDir + "fxaa" + fragSPV;
+
+		shadowVSFilePath = shaderDir + "directionalLightShadow" + vertSPV;
+		shadowFSFilePath = shaderDir + "directionalLightShadow" + fragSPV;
 
 		uniformBufferDynamicObjects.resize(meshes.size());
 		for (size_t i = 0; i < meshes.size(); i++)

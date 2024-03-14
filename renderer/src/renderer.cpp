@@ -83,7 +83,7 @@ namespace VulkanEngine
         }
         else
         {
-            UIRenderPass->init(vulkanRenderer, deferredRenderPass, 1, sceneData);
+            UIRenderPass->init(vulkanRenderer, deferredRenderPass, deferredRenderPass->renderPipelines.size() - 1, sceneData);
         }
 
         sceneData->lookAtSceneCenter();
@@ -214,7 +214,7 @@ namespace VulkanEngine
             renderPassInfo.renderArea.offset = { 0, 0 };
             renderPassInfo.renderArea.extent = vulkanRenderer->swapChainExtent;
 
-            VkClearValue clearColors[5];
+            VkClearValue clearColors[7];
 
             clearColors[0].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
             clearColors[1].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
@@ -222,6 +222,8 @@ namespace VulkanEngine
             clearColors[2].color = { { clearColor, clearColor, clearColor, 0.0f } };
             clearColors[3].depthStencil = { 1.0f, 0 };
             clearColors[4].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+            clearColors[5].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+            clearColors[6].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
             renderPassInfo.clearValueCount = sizeof(clearColors) / sizeof(clearColors[0]);
             renderPassInfo.pClearValues = clearColors;
 
@@ -250,15 +252,28 @@ namespace VulkanEngine
                 deferredRenderPass->drawIndexed(currentCommandBuffer, sceneData->meshes[i]->indices.size());
             }
             
-            vkCmdNextSubpass(currentCommandBuffer, VK_SUBPASS_CONTENTS_INLINE);
-            
-            vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].pipeline);
-            
-            std::array<VkDescriptorSet, 3> sets = { sceneData->directionalLightShadowDescriptor.descriptorSet[0], deferredRenderPass->descriptorInfos[0].descriptorSet, sceneData->deferredUniformDescriptor.descriptorSet[0] };
-            vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].layout, 0, sets.size(), sets.data(), 0, nullptr);
-            
-            deferredRenderPass->draw(currentCommandBuffer, 3);
+            {
+                vkCmdNextSubpass(currentCommandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 
+                vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].pipeline);
+
+                std::array<VkDescriptorSet, 3> sets = { sceneData->directionalLightShadowDescriptor.descriptorSet[0], deferredRenderPass->descriptorInfos[0].descriptorSet, sceneData->deferredUniformDescriptor.descriptorSet[0] };
+                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].layout, 0, sets.size(), sets.data(), 0, nullptr);
+
+                deferredRenderPass->draw(currentCommandBuffer, 3);
+            }
+            // FXAA
+            {
+                vkCmdNextSubpass(currentCommandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+
+                vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[2].pipeline);
+
+                std::array<VkDescriptorSet, 1> sets = { deferredRenderPass->descriptorInfos[1].descriptorSet };
+
+                vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[2].layout, 0, sets.size(), sets.data(), 0, nullptr);
+
+                deferredRenderPass->draw(currentCommandBuffer, 3);
+            }
             UIRenderPass->draw(currentCommandBuffer, 0);
 
             vulkanRenderer->cmdEndRenderPass(currentCommandBuffer);

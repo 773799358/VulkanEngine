@@ -15,6 +15,8 @@ execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/directional
 execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/gbuffer.frag -o ${CMAKE_SOURCE_DIR}/spvs/gbuffer.frag.spv)
 execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/deferredLighting.vert -o ${CMAKE_SOURCE_DIR}/spvs/deferredLighting.vert.spv)
 execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/deferredLighting.frag -o ${CMAKE_SOURCE_DIR}/spvs/deferredLighting.frag.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/fxaa.vert -o ${CMAKE_SOURCE_DIR}/spvs/fxaa.vert.spv)
+execute_process(COMMAND ${GLSLC_PROGRAM} ${CMAKE_SOURCE_DIR}/shaders/fxaa.frag -o ${CMAKE_SOURCE_DIR}/spvs/fxaa.frag.spv)
 message(STATUS "compile shader OK")
 
 include(cmake/FindVulkan.cmake)

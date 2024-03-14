@@ -172,6 +172,9 @@ namespace VulkanEngine
 		std::string deferredLightingVSFilePath;
 		std::string deferredLightingFSFilePath;
 
+		std::string FXAAVSFilePath;
+		std::string FXAAFSFilePath;
+
 		std::string shadowVSFilePath;
 		std::string shadowFSFilePath;
 

@@ -332,6 +332,11 @@ namespace VulkanEngine
         populateDebugMessengerCreateInfo(createInfo);
 
         VK_CHECK_RESULT(CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessenger));
+
+        _vkCmdBeginDebugUtilsLabelEXT =
+            (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT");
+        _vkCmdEndDebugUtilsLabelEXT =
+            (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT");
     }
 
     void VulkanRenderer::createWindowSurface()
@@ -770,6 +775,29 @@ namespace VulkanEngine
         LOG_DEBUG("validation layer: \n \t {}", pCallbackData->pMessage);
 
         return VK_FALSE;
+    }
+
+    void VulkanRenderer::pushEvnet(VkCommandBuffer& commandBuffer, const char* name, const float* color)
+    {
+        if (enableValidationLayers)
+        {
+            VkDebugUtilsLabelEXT label_info;
+            label_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            label_info.pNext = nullptr;
+            label_info.pLabelName = name;
+            for (int i = 0; i < 4; ++i)
+                label_info.color[i] = color[i];
+            
+            _vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &label_info);
+        }
+    }
+
+    void VulkanRenderer::popEvent(VkCommandBuffer& commandBuffer)
+    {
+        if (enableValidationLayers)
+        {
+            _vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+        }
     }
 
     void VulkanRenderer::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
