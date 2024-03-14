@@ -244,8 +244,8 @@ namespace VulkanEngine
 			vertexBindingDescriptions, vertexAttributeDescriptions,
 			renderPass,
 			0,
-			vulkanRender->viewport, vulkanRender->scissor,
-			vulkanRender->msaaSamples,
+			viewport, scissor,
+			VK_SAMPLE_COUNT_1_BIT,
 			dynamicStates, 1, colorBlendAttachmentState.data(), true, true);
 	}
 

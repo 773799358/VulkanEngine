@@ -30,7 +30,7 @@ void main()
     float roughness = texture(metallicRoughnessTextureSampler, inTexCoord).y;
     float shadingModelID = 1.0;
 
-    out_gbuffer0 = vec4(EncodeNormal(worldNormal), 1.0);
-    out_gbuffer1 = vec4(metalic, specular, roughness, shadingModelID / 255.0);
-    out_gbuffer2 = vec4(albedo, 1.0);
+    out_gbuffer0 = vec4(EncodeNormal(worldNormal), (T.x + 1.0) / 2.0);
+    out_gbuffer1 = vec4(metalic, specular, roughness, (T.y + 1.0) / 2.0);
+    out_gbuffer2 = vec4(albedo, (T.z + 1.0) / 2.0);
 }

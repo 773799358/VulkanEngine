@@ -25,7 +25,7 @@ namespace VulkanEngine
         VulkanRenderer() = default;
         ~VulkanRenderer();
 
-        void init(Window* window, const std::string& basePath);
+        void init(Window* window, const std::string& basePath, bool msaa);
 
         // 如果recreateSwapChain，需要对与此大小相关的资源进行重新创建
         // 返回值代表是否重建了交换链
@@ -159,6 +159,7 @@ namespace VulkanEngine
         VkQueue computeQueue;
 
         // swapChain
+        bool msaa = false;
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         static const int MAX_FRAMES_IN_FLIGHT = 3;
         uint32_t currentSwapChainImageIndex = 0;

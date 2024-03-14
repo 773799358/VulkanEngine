@@ -91,9 +91,11 @@ namespace VulkanEngine
         vkDestroyInstance(instance, nullptr);
     }
 
-    void VulkanRenderer::init(Window* window, const std::string& basePath)
+    void VulkanRenderer::init(Window* window, const std::string& basePath, bool msaa)
     {
         this->basePath = basePath + "/";
+
+        this->msaa = msaa;
 
         windowHandler = window;
         this->window = window->getWindow();
@@ -675,7 +677,10 @@ namespace VulkanEngine
     {
         // TODO:
         msaaSamples = VulkanUtil::getMaxUsableSampleCount(physicalDevice);
-        msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        if (!msaa)
+        {
+            msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        }
         //if (msaaSamples > VK_SAMPLE_COUNT_4_BIT)
         //{
         //    msaaSamples = VK_SAMPLE_COUNT_4_BIT;

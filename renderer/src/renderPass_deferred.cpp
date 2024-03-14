@@ -138,7 +138,7 @@ namespace VulkanEngine
 		{
 			VkAttachmentDescription& gbufferNormalAttachmentDescription = attachments[0];
 			gbufferNormalAttachmentDescription.format = mainFrameBuffer.attachments[0].format;
-			gbufferNormalAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+			gbufferNormalAttachmentDescription.samples = vulkanRender->msaaSamples;
 			gbufferNormalAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			gbufferNormalAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;		// TODO:STORE
 			gbufferNormalAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -148,7 +148,7 @@ namespace VulkanEngine
 
 			VkAttachmentDescription& gbufferMetallicRoughnessShadingIDAttachmentDescription = attachments[1];
 			gbufferMetallicRoughnessShadingIDAttachmentDescription.format = mainFrameBuffer.attachments[1].format;
-			gbufferMetallicRoughnessShadingIDAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+			gbufferMetallicRoughnessShadingIDAttachmentDescription.samples = vulkanRender->msaaSamples;
 			gbufferMetallicRoughnessShadingIDAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			gbufferMetallicRoughnessShadingIDAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			gbufferMetallicRoughnessShadingIDAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -158,7 +158,7 @@ namespace VulkanEngine
 
 			VkAttachmentDescription& gbufferAlbedoAttachmentDescription = attachments[2];
 			gbufferAlbedoAttachmentDescription.format = mainFrameBuffer.attachments[2].format;
-			gbufferAlbedoAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+			gbufferAlbedoAttachmentDescription.samples = vulkanRender->msaaSamples;
 			gbufferAlbedoAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			gbufferAlbedoAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			gbufferAlbedoAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -168,7 +168,7 @@ namespace VulkanEngine
 
 			VkAttachmentDescription& depthAttachmentDescription = attachments[3];
 			depthAttachmentDescription.format = vulkanRender->depthImageFormat;
-			depthAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+			depthAttachmentDescription.samples = vulkanRender->msaaSamples;
 			depthAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			depthAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;	// TODO:STORE
 			depthAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -178,7 +178,7 @@ namespace VulkanEngine
 
 			VkAttachmentDescription& swapChainImageAttachmentDescription = attachments[4];
 			swapChainImageAttachmentDescription.format = vulkanRender->swapChainImageFormat;
-			swapChainImageAttachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
+			swapChainImageAttachmentDescription.samples = vulkanRender->msaaSamples;
 			swapChainImageAttachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			swapChainImageAttachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			swapChainImageAttachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -218,6 +218,7 @@ namespace VulkanEngine
 			gbufferPass.pDepthStencilAttachment = &depthAttachmentReference;
 			gbufferPass.preserveAttachmentCount = 0;
 			gbufferPass.pPreserveAttachments = nullptr;
+			gbufferPass.pResolveAttachments = nullptr;
 
 			deferredLightingPassInputAttachementReference[0].attachment = 0;
 			deferredLightingPassInputAttachementReference[0].layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -362,13 +363,13 @@ namespace VulkanEngine
 				renderPass,
 				0,
 				vulkanRender->viewport, vulkanRender->scissor,
-				VK_SAMPLE_COUNT_1_BIT,
+				vulkanRender->msaaSamples,
 				dynamicStates, 3, colorBlendAttachmentState.data(), true, true);
 		}
 
 		// lighting
 		{
-			std::array<VkDescriptorSetLayout, 2> descriptorSetLayout = { sceneData->directionalLightShadowDescriptor.layout, descriptorInfos[0].layout };
+			std::array<VkDescriptorSetLayout, 3> descriptorSetLayout = { sceneData->directionalLightShadowDescriptor.layout, descriptorInfos[0].layout, sceneData->deferredUniformDescriptor.layout };
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = {};
 			pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pipelineLayoutCI.setLayoutCount = descriptorSetLayout.size();
@@ -395,7 +396,7 @@ namespace VulkanEngine
 				renderPass,
 				1,
 				vulkanRender->viewport, vulkanRender->scissor,
-				VK_SAMPLE_COUNT_1_BIT,
+				vulkanRender->msaaSamples,
 				dynamicStates, 1, colorBlendAttachmentState.data(), false, false);
 		}
 	}

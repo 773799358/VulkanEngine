@@ -143,6 +143,8 @@ namespace VulkanEngine
 
 		void createDirectionalLightShadowDescriptorSet(VkImageView& directionalLightShadowView);
 
+		void createDeferredUniformDescriptorSet();
+
 		// TODO:场景非uniform数据更新后续再处理
 		void updateUniformRenderData();
 
@@ -154,7 +156,6 @@ namespace VulkanEngine
 
 		VulkanDescriptor uniformDescriptor;
 		VulkanDescriptor PBRMaterialDescriptor;
-		VulkanDescriptor deferredUniformDescriptor;
 
 		Node* rootNode = nullptr;
 		std::vector<Node*> nodes;
@@ -189,6 +190,10 @@ namespace VulkanEngine
 		VulkanResource uniformShadowResource;
 		UnifromBufferObjectShadowProjView uniformBufferShadowVSObject;
 		VulkanDescriptor directionalLightShadowDescriptor;
+
+		VulkanResource deferredUniformResource;
+		DeferredUniformBufferObject deferredUniformObject;
+		VulkanDescriptor deferredUniformDescriptor;
 
 		glm::mat4 rotate = glm::mat4(1.0);
 
