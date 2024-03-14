@@ -629,7 +629,7 @@ namespace VulkanEngine
 
 			VkDescriptorImageInfo FXAAInputAttachmentInfo = {};
 			FXAAInputAttachmentInfo.sampler = vulkanRender->getOrCreateNearestSampler();
-			FXAAInputAttachmentInfo.imageView = frameBuffers[0].attachments[4].imageView;
+			FXAAInputAttachmentInfo.imageView = frameBuffers[0].attachments[3].imageView;
 			FXAAInputAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 			std::array<VkWriteDescriptorSet, 1> FXAAInputAttachmentWritesInfo = {};
