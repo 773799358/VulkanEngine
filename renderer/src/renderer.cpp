@@ -9,7 +9,7 @@
 
 namespace VulkanEngine
 {
-    bool forward = true;
+    bool forward = false;
 
     Renderer::Renderer()
     {
@@ -218,9 +218,10 @@ namespace VulkanEngine
 
             clearColors[0].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
             clearColors[1].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
-            clearColors[2].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
+            float clearColor = 0.0f;
+            clearColors[2].color = { { clearColor, clearColor, clearColor, 0.0f } };
             clearColors[3].depthStencil = { 1.0f, 0 };
-            clearColors[4].color = { {0.2f, 0.2f, 0.2f, 0.2f} };
+            clearColors[4].color = { {0.0f, 0.0f, 0.0f, 0.0f} };
             renderPassInfo.clearValueCount = sizeof(clearColors) / sizeof(clearColors[0]);
             renderPassInfo.pClearValues = clearColors;
 

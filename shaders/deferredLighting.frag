@@ -17,12 +17,6 @@ layout(input_attachment_index = 1, set = 1, binding = 1) uniform highp subpassIn
 layout(input_attachment_index = 2, set = 1, binding = 2) uniform highp subpassInput inGbufferAlbedo;
 layout(input_attachment_index = 3, set = 1, binding = 3) uniform highp subpassInput inSceneDepth;
 
-//layout(set = 0, binding = 0) uniform UniformBufferObjectPV
-//{
-//    mat4 view;
-//    mat4 proj;
-//} projView;
-
 layout(set = 2, binding = 0) uniform UniformBufferObject
 {
     mat4x4 projView;
@@ -107,20 +101,10 @@ void main()
     // there is no need to do gamma correction in the fragment shader
     color = gamma(color);
 
-    //vec3 diffuse = max(dot(N, directionalLightDirection), 0.0) * baseColor;
-    //vec3 viewDir = normalize(ubo.viewPos - inWorldPos);
-    //vec3 halfDir = normalize(directionalLightDirection + viewDir);
-//
-    //float spec = pow(max(dot(halfDir, N), 0.0), 5);
-//
-    //highp float shadow = 0.0;
-    //        
-    //shadow = calculateShadow(directionalLightShadowMapSampler, inWorldPos, shadowUbo.shadowProjView);
-//
-    //result = diffuse * vec3(0.5);
-    //vec3 specular = spec * vec3(0.2);
-//
-    //result = (result + specular);
+    if(subpassLoad(inSceneDepth).r == 1.0)
+    {
+        color = vec3(0.2);
+    }
 
     outColor = vec4(color, 1.0);
 }

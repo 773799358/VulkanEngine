@@ -46,48 +46,40 @@ namespace VulkanEngine
 				vkFreeMemory(vulkanRender->device, attachment.memory, nullptr);
 			}
 		}
+		frameBuffers.clear();
 
 		for (const auto& frameBuffer : swapChainFrameBuffers)
 		{
 			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);
 		}
+		swapChainFrameBuffers.clear();
 
 		for (uint32_t i = 0; i < renderPipelines.size(); i++)
 		{
 			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
 			vkDestroyPipelineLayout(vulkanRender->device, renderPipelines[i].layout, nullptr);
 		}
+		renderPipelines.clear();
 
 		vkDestroyDescriptorSetLayout(vulkanRender->device, descriptorInfos[0].layout, nullptr);
 		vkFreeDescriptorSets(vulkanRender->device, vulkanRender->descriptorPool, 1, &descriptorInfos[0].descriptorSet);
 
+		descriptorInfos.clear();
+
 		vkDestroyRenderPass(vulkanRender->device, renderPass, nullptr);
+
+		renderPass = nullptr;
 	}
 
 	void DeferredRenderPass::recreate()
 	{
-		for (const auto& frameBuffer : frameBuffers)
-		{
-			for (const auto& attachment : frameBuffer.attachments)
-			{
-				vkDestroyImage(vulkanRender->device, attachment.image, nullptr);
-				vkDestroyImageView(vulkanRender->device, attachment.imageView, nullptr);
-				vkFreeMemory(vulkanRender->device, attachment.memory, nullptr);
-			}
-		}
+		clear();
 
-		for (const auto& frameBuffer : swapChainFrameBuffers)
-		{
-			vkDestroyFramebuffer(vulkanRender->device, frameBuffer, nullptr);
-		}
-
-		for (uint32_t i = 0; i < renderPipelines.size(); i++)
-		{
-			vkDestroyPipeline(vulkanRender->device, renderPipelines[i].pipeline, nullptr);
-			vkDestroyPipelineLayout(vulkanRender->device, renderPipelines[i].layout, nullptr);
-		}
+		descriptorInfos.resize(1);
 
 		setupAttachments();
+		setupDescriptorSetLayout();
+		setupDescriptorSet();
 		setupRenderPass();
 		setupFrameBuffers();
 		setupPipelines();
@@ -113,7 +105,7 @@ namespace VulkanEngine
 		{
 			vulkanRender->createImage(width, height, mainFrameBuffer.attachments[i].format,
 				VK_IMAGE_TILING_OPTIMAL,
-				VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT,		// 后续pass，image会作为输入	
+				VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,		// 后续pass，image会作为输入	
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 				mainFrameBuffer.attachments[i].image,
 				mainFrameBuffer.attachments[i].memory,

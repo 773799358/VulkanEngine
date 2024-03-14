@@ -34,11 +34,10 @@ void main()
     gl_Position = ubo.proj * ubo.view * uboDynamic.model * vec4(inPosition, 1.0);
     outColor = inColor;
 
-    mat3x3 tangent_matrix = mat3x3(uboDynamic.model[0].xyz, uboDynamic.model[1].xyz, uboDynamic.model[2].xyz);
-    outNormal            = normalize(tangent_matrix * inNormal);
-    outTangent           = normalize(tangent_matrix * inTangent);
+    mat3x3 tangentMatrix = mat3x3(uboDynamic.model[0].xyz, uboDynamic.model[1].xyz, uboDynamic.model[2].xyz);
+    outNormal            = normalize(tangentMatrix * inNormal);
+    outTangent           = normalize(tangentMatrix * inTangent);
 
-    ///outNormal = mat3(transpose(inverse(uboDynamic.model))) * inNormal;
     outTexCoord = inTexCoord;
 
     outWorldPos = vec3(uboDynamic.model * vec4(inPosition, 1.0));
