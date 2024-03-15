@@ -71,10 +71,10 @@ namespace VulkanEngine
 
 		IBLSpecularBox->fullPaths[0] = sky + "skybox_specular_X+.hdr";
 		IBLSpecularBox->fullPaths[1] = sky + "skybox_specular_X-.hdr";
-		IBLSpecularBox->fullPaths[2] = sky + "skybox_specular_Y+.hdr";
-		IBLSpecularBox->fullPaths[3] = sky + "skybox_specular_Y-.hdr";
-		IBLSpecularBox->fullPaths[4] = sky + "skybox_specular_Z+.hdr";
-		IBLSpecularBox->fullPaths[5] = sky + "skybox_specular_Z-.hdr";
+		IBLSpecularBox->fullPaths[2] = sky + "skybox_specular_Z+.hdr";
+		IBLSpecularBox->fullPaths[3] = sky + "skybox_specular_Z-.hdr";
+		IBLSpecularBox->fullPaths[4] = sky + "skybox_specular_Y+.hdr";
+		IBLSpecularBox->fullPaths[5] = sky + "skybox_specular_Y-.hdr";
 
 		IBLSpecularBox->createCubeMap(vulkanRenderer);
 
@@ -82,10 +82,10 @@ namespace VulkanEngine
 
 		IBLIrradianceBox->fullPaths[0] = sky + "skybox_irradiance_X+.hdr";
 		IBLIrradianceBox->fullPaths[1] = sky + "skybox_irradiance_X-.hdr";
-		IBLIrradianceBox->fullPaths[2] = sky + "skybox_irradiance_Y+.hdr";
-		IBLIrradianceBox->fullPaths[3] = sky + "skybox_irradiance_Y-.hdr";
-		IBLIrradianceBox->fullPaths[4] = sky + "skybox_irradiance_Z+.hdr";
-		IBLIrradianceBox->fullPaths[5] = sky + "skybox_irradiance_Z-.hdr";
+		IBLIrradianceBox->fullPaths[2] = sky + "skybox_irradiance_Z+.hdr";
+		IBLIrradianceBox->fullPaths[3] = sky + "skybox_irradiance_Z-.hdr";
+		IBLIrradianceBox->fullPaths[4] = sky + "skybox_irradiance_Y+.hdr";
+		IBLIrradianceBox->fullPaths[5] = sky + "skybox_irradiance_Y-.hdr";
 
 		IBLIrradianceBox->createCubeMap(vulkanRenderer);
 
@@ -249,6 +249,8 @@ namespace VulkanEngine
 		auto currentTime = std::chrono::high_resolution_clock::now();
 
 		float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
+
+		time = 5.6f;
 
 		uniformBufferVSObject.proj = cameraController.camera.getProjectMatrix(vulkanRenderer->windowWidth / (float)(vulkanRenderer->windowHeight));
 		uniformBufferVSObject.view = cameraController.camera.getViewMatrix();
@@ -703,7 +705,7 @@ namespace VulkanEngine
 		void* pixels[6];
 		for (size_t i = 0; i < 6; i++)
 		{
-			pixels[i] = stbi_loadf(fullPaths[i].c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+			pixels[i] = stbi_load(fullPaths[i].c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 		}
 		stbi_hdr_to_ldr_scale(1.0f);
 

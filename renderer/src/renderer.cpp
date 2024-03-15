@@ -257,7 +257,7 @@ namespace VulkanEngine
 
                 vulkanRenderer->cmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].pipeline);
 
-                std::array<VkDescriptorSet, 3> sets = { sceneData->directionalLightShadowDescriptor.descriptorSet[0], deferredRenderPass->descriptorInfos[0].descriptorSet, sceneData->deferredUniformDescriptor.descriptorSet[0] };
+                std::array<VkDescriptorSet, 4> sets = { sceneData->directionalLightShadowDescriptor.descriptorSet[0], deferredRenderPass->descriptorInfos[0].descriptorSet, sceneData->deferredUniformDescriptor.descriptorSet[0], sceneData->IBLDescriptor.descriptorSet[0] };
                 vulkanRenderer->cmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, deferredRenderPass->renderPipelines[1].layout, 0, sets.size(), sets.data(), 0, nullptr);
 
                 deferredRenderPass->draw(currentCommandBuffer, 3);

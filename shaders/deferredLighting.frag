@@ -12,6 +12,12 @@ layout(location = 0) out highp vec4 outColor;
 
 layout(location = 0) in highp vec2 inTexCoord;
 
+layout(set = 0, binding = 0) uniform sampler2D directionalLightShadowMapSampler;
+layout(set = 0, binding = 1) uniform ShadowProjView
+{
+    mat4x4 shadowProjView;
+} shadowUbo;
+
 layout(input_attachment_index = 0, set = 1, binding = 0) uniform highp subpassInput inGbufferNormal;
 layout(input_attachment_index = 1, set = 1, binding = 1) uniform highp subpassInput inGbufferMR;
 layout(input_attachment_index = 2, set = 1, binding = 2) uniform highp subpassInput inGbufferAlbedo;
@@ -29,11 +35,20 @@ layout(set = 2, binding = 0) uniform UniformBufferObject
     mat4x4 directionalLightProjView;
 } ubo;
 
-layout(set = 0, binding = 0) uniform sampler2D directionalLightShadowMapSampler;
-layout(set = 0, binding = 1) uniform ShadowProjView
+layout(set = 3, binding = 0) uniform samplerCube specularSampler;
+layout(set = 3, binding = 1) uniform samplerCube irradianceSampler;
+layout(set = 3, binding = 2) uniform sampler2D brdfLUTSampler;
+
+highp float Pow5(highp float x)
 {
-    mat4x4 shadowProjView;
-} shadowUbo;
+    highp float x2 = x * x;
+    return (x * x2 * x2);
+}
+
+highp vec3 F_SchlickR(highp float cosTheta, highp vec3 F0, highp float roughness)
+{
+    return F0 + (max(vec3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), F0) - F0) * Pow5(1.0 - cosTheta);
+}
 
 void main()
 {
@@ -70,6 +85,25 @@ void main()
     highp vec3 La = vec3(0.0f, 0.0f, 0.0f);
     La            = baseColor * ambientLight;
 
+    // IBL
+    highp vec3 irradiance = texture(irradianceSampler, N).rgb;
+    highp vec3 diffuse    = irradiance * baseColor;
+
+    highp float dielectric_specular = 0.08 * specular;
+    highp vec3 F0 = mix(vec3(dielectric_specular, dielectric_specular, dielectric_specular), baseColor, metallic);
+
+    highp vec3 F       = F_SchlickR(clamp(dot(N, V), 0.0, 1.0), F0, roughness);
+    highp vec2 brdfLUT = texture(brdfLUTSampler, vec2(clamp(dot(N, V), 0.0, 1.0), roughness)).rg;
+
+    highp float lod        = roughness * 8.0;
+    highp vec3  R = reflect(-V, N);
+    highp vec3  reflection = textureLod(specularSampler, R, lod).rgb;
+    highp vec3  specular   = reflection * (F * brdfLUT.x + brdfLUT.y);
+
+    highp vec3 kD = 1.0 - F;
+    kD *= 1.0 - metallic;
+    highp vec3 Libl = (kD * diffuse + specular);
+
     // directional light
     {
         highp vec3  L   = normalize(directionalLightDirection);
@@ -90,21 +124,25 @@ void main()
         }
     }
 
-    highp vec3 result = Lo + La;
-
+    highp vec3 result = Lo + La + Libl;
+    
     highp vec3 color = result;
+
+    if(subpassLoad(inSceneDepth).r == 1.0)
+    {
+        // skybox
+        highp vec3 inUVW            = normalize(inWorldPos - ubo.viewPos);
+        highp vec3 originSampleUVW  = vec3(inUVW.x, inUVW.y, inUVW.z);
+        color = textureLod(specularSampler, originSampleUVW, 0.0).rgb;
+    }
+
     // tone mapping
-    color = toneMapping(color);
+    //color = toneMapping(color);
     
     // Gamma correct
     // TODO: select the VK_FORMAT_B8G8R8A8_SRGB surface format,
     // there is no need to do gamma correction in the fragment shader
     color = gamma(color);
-
-    if(subpassLoad(inSceneDepth).r == 1.0)
-    {
-        color = vec3(0.2);
-    }
 
     outColor = vec4(color, 1.0);
 }

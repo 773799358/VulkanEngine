@@ -422,7 +422,7 @@ namespace VulkanEngine
 
 		// lighting
 		{
-			std::array<VkDescriptorSetLayout, 3> descriptorSetLayout = { sceneData->directionalLightShadowDescriptor.layout, descriptorInfos[0].layout, sceneData->deferredUniformDescriptor.layout };
+			std::array<VkDescriptorSetLayout, 4> descriptorSetLayout = { sceneData->directionalLightShadowDescriptor.layout, descriptorInfos[0].layout, sceneData->deferredUniformDescriptor.layout, sceneData->IBLDescriptor.layout };
 			VkPipelineLayoutCreateInfo pipelineLayoutCI = {};
 			pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pipelineLayoutCI.setLayoutCount = descriptorSetLayout.size();
