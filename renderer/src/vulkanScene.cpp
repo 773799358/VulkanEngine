@@ -250,13 +250,11 @@ namespace VulkanEngine
 
 		float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
 
-		time = 5.6f;
-
 		uniformBufferVSObject.proj = cameraController.camera.getProjectMatrix(vulkanRenderer->windowWidth / (float)(vulkanRenderer->windowHeight));
 		uniformBufferVSObject.view = cameraController.camera.getViewMatrix();
 
 		uniformBufferFSObject.viewPos = cameraController.camera.position;
-		uniformBufferFSObject.directionalLightPos = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		uniformBufferFSObject.directionalLightPos = glm::rotate(glm::mat4(1.0f), 5.6f * glm::radians(90.0f / 5.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 		float sceneSphereRadius = glm::length(getSceneBounds().getSize()) / 2.0f;
 		glm::vec3 sceneSphereCenter = getSceneBounds().getCenter();
@@ -278,7 +276,7 @@ namespace VulkanEngine
 		for (int i = 0; i < meshes.size(); i++)
 		{
 			transforms[i].model =  rotate * meshes[i]->node->worldTransform;
-			//transforms[i].model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 5.0f), glm::vec3(1.0f, 0.0f, 0.0f)) * transforms[i].model;
+			transforms[i].model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f / 20.0f), glm::vec3(0.0f, 1.0f, 0.0f)) * transforms[i].model;
 		}
 
 		{

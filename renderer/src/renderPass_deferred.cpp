@@ -61,8 +61,11 @@ namespace VulkanEngine
 		}
 		renderPipelines.clear();
 
-		vkDestroyDescriptorSetLayout(vulkanRender->device, descriptorInfos[0].layout, nullptr);
-		vkFreeDescriptorSets(vulkanRender->device, vulkanRender->descriptorPool, 1, &descriptorInfos[0].descriptorSet);
+		for (uint32_t i = 0; i < descriptorInfos.size(); i++)
+		{
+			vkDestroyDescriptorSetLayout(vulkanRender->device, descriptorInfos[i].layout, nullptr);
+			vkFreeDescriptorSets(vulkanRender->device, vulkanRender->descriptorPool, 1, &descriptorInfos[i].descriptorSet);
+		}
 
 		descriptorInfos.clear();
 

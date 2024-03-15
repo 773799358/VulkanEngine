@@ -124,6 +124,7 @@ void main()
         }
     }
 
+    La = vec3(0.0);
     highp vec3 result = Lo + La + Libl;
     
     highp vec3 color = result;
