@@ -57,14 +57,42 @@ namespace VulkanEngine
 		// TODO:没设置默认AO和自发光贴图
 		PBRMaterial* material = new PBRMaterial();
 
-		std::string defaultPaht = vulkanRenderer->basePath + "/resources/models/default/";
+		std::string defaultPath = vulkanRenderer->basePath + "/resources/models/default/";
 
 		Texture* diffuse = new Texture();
-		diffuse->fullPath = defaultPaht + "/default_grey.png";
+		diffuse->fullPath = defaultPath + "/default_grey.png";
 		Texture* normal = new Texture();
-		normal->fullPath = defaultPaht + "/default_normal.png";
+		normal->fullPath = defaultPath + "/default_normal.png";
 		Texture* metallicRoughness = new Texture();
-		metallicRoughness->fullPath = defaultPaht + "/default_mr.jpg";
+		metallicRoughness->fullPath = defaultPath + "/default_mr.jpg";
+
+		std::string sky = defaultPath + "/sky/";
+		IBLSpecularBox = new CubeMap();
+
+		IBLSpecularBox->fullPaths[0] = sky + "skybox_specular_X+.hdr";
+		IBLSpecularBox->fullPaths[1] = sky + "skybox_specular_X-.hdr";
+		IBLSpecularBox->fullPaths[2] = sky + "skybox_specular_Y+.hdr";
+		IBLSpecularBox->fullPaths[3] = sky + "skybox_specular_Y-.hdr";
+		IBLSpecularBox->fullPaths[4] = sky + "skybox_specular_Z+.hdr";
+		IBLSpecularBox->fullPaths[5] = sky + "skybox_specular_Z-.hdr";
+
+		IBLSpecularBox->createCubeMap(vulkanRenderer);
+
+		IBLIrradianceBox = new CubeMap();
+
+		IBLIrradianceBox->fullPaths[0] = sky + "skybox_irradiance_X+.hdr";
+		IBLIrradianceBox->fullPaths[1] = sky + "skybox_irradiance_X-.hdr";
+		IBLIrradianceBox->fullPaths[2] = sky + "skybox_irradiance_Y+.hdr";
+		IBLIrradianceBox->fullPaths[3] = sky + "skybox_irradiance_Y-.hdr";
+		IBLIrradianceBox->fullPaths[4] = sky + "skybox_irradiance_Z+.hdr";
+		IBLIrradianceBox->fullPaths[5] = sky + "skybox_irradiance_Z-.hdr";
+
+		IBLIrradianceBox->createCubeMap(vulkanRenderer);
+
+		brdfLUTTexture = new Texture();
+		brdfLUTTexture->fullPath = defaultPath + "/brdf_schilk.hdr";
+		brdfLUTTexture->oneLevel = true;
+		brdfLUTTexture->createTextureImage(vulkanRenderer);
 
 		textures.resize(3);
 		textures[0] = diffuse;
@@ -110,6 +138,7 @@ namespace VulkanEngine
 		createUniformBufferData();
 		createUniformDescriptorSet();
 		createPBRDescriptorLayout();
+		createIBLDescriptor();
 
 		for (size_t i = 0; i < textures.size(); i++)
 		{
@@ -145,6 +174,32 @@ namespace VulkanEngine
 			delete textures[i];
 		}
 
+		if (IBLSpecularBox != nullptr)
+		{
+			vkDestroyImage(device, IBLSpecularBox->cubeImage, nullptr);
+			vkDestroyImageView(device, IBLSpecularBox->cubeImageView, nullptr);
+			vkDestroySampler(device, IBLSpecularBox->sampler, nullptr);
+			vkFreeMemory(device, IBLSpecularBox->cubeImageMemory, nullptr);
+			delete IBLSpecularBox;
+		}
+
+		if (IBLIrradianceBox != nullptr)
+		{
+			vkDestroyImage(device, IBLIrradianceBox->cubeImage, nullptr);
+			vkDestroyImageView(device, IBLIrradianceBox->cubeImageView, nullptr);
+			vkDestroySampler(device, IBLIrradianceBox->sampler, nullptr);
+			vkFreeMemory(device, IBLIrradianceBox->cubeImageMemory, nullptr);
+			delete IBLIrradianceBox;
+		}
+
+		if (brdfLUTTexture != nullptr)
+		{
+			vkDestroyImage(device, brdfLUTTexture->textureImage, nullptr);
+			vkDestroyImageView(device, brdfLUTTexture->textureImageView, nullptr);
+			vkFreeMemory(device, brdfLUTTexture->textureImageMemory, nullptr);
+			delete brdfLUTTexture;
+		}
+
 		for (size_t i = 0; i < materials.size(); i++)
 		{
 			vkFreeDescriptorSets(device, vulkanRenderer->descriptorPool, 1, &materials[i]->descriptorSet);
@@ -178,6 +233,12 @@ namespace VulkanEngine
 		{
 			vkDestroyDescriptorSetLayout(device, deferredUniformDescriptor.layout, nullptr);
 			vkFreeDescriptorSets(device, vulkanRenderer->descriptorPool, deferredUniformDescriptor.descriptorSet.size(), deferredUniformDescriptor.descriptorSet.data());
+		}
+
+		if (IBLDescriptor.layout != VK_NULL_HANDLE)
+		{
+			vkDestroyDescriptorSetLayout(device, IBLDescriptor.layout, nullptr);
+			vkFreeDescriptorSets(device, vulkanRenderer->descriptorPool, IBLDescriptor.descriptorSet.size(), IBLDescriptor.descriptorSet.data());
 		}
 	}
 
@@ -392,6 +453,87 @@ namespace VulkanEngine
 		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRenderer->device, &layoutInfo, nullptr, &PBRMaterialDescriptor.layout));
 	}
 
+	void VulkanRenderSceneData::createIBLDescriptor()
+	{
+		VkDescriptorSetLayoutBinding IBLLayoutBinding[3] = {};
+		IBLLayoutBinding[0].binding = 0;
+		IBLLayoutBinding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		IBLLayoutBinding[0].descriptorCount = 1;
+		IBLLayoutBinding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		IBLLayoutBinding[0].pImmutableSamplers = nullptr;
+
+		IBLLayoutBinding[1].binding = 1;
+		IBLLayoutBinding[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		IBLLayoutBinding[1].descriptorCount = 1;
+		IBLLayoutBinding[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		IBLLayoutBinding[1].pImmutableSamplers = nullptr;
+
+		IBLLayoutBinding[2].binding = 2;
+		IBLLayoutBinding[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		IBLLayoutBinding[2].descriptorCount = 1;
+		IBLLayoutBinding[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+		IBLLayoutBinding[2].pImmutableSamplers = nullptr;
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = sizeof(IBLLayoutBinding) / sizeof(IBLLayoutBinding[0]);
+		layoutInfo.pBindings = IBLLayoutBinding;
+
+		VK_CHECK_RESULT(vkCreateDescriptorSetLayout(vulkanRenderer->device, &layoutInfo, nullptr, &IBLDescriptor.layout));
+
+		IBLDescriptor.descriptorSet.resize(1);
+
+		VkDescriptorSetAllocateInfo allocateInfo = {};
+		allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocateInfo.pNext = nullptr;
+		allocateInfo.descriptorPool = vulkanRenderer->descriptorPool;
+		allocateInfo.descriptorSetCount = 1;
+		allocateInfo.pSetLayouts = &IBLDescriptor.layout;
+
+		VK_CHECK_RESULT(vkAllocateDescriptorSets(vulkanRenderer->device, &allocateInfo, &IBLDescriptor.descriptorSet[0]));
+
+		std::array<VkDescriptorImageInfo, 3> imageInfo = {};
+		imageInfo[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo[0].imageView = IBLSpecularBox->cubeImageView;
+		imageInfo[0].sampler = IBLSpecularBox->sampler;
+
+		imageInfo[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo[1].imageView = IBLIrradianceBox->cubeImageView;
+		imageInfo[1].sampler = IBLIrradianceBox->sampler;
+
+		imageInfo[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		imageInfo[2].imageView = brdfLUTTexture->textureImageView;
+		imageInfo[2].sampler = brdfLUTTexture->sampler;
+
+		std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = IBLDescriptor.descriptorSet[0];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pImageInfo = &imageInfo[0];
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = IBLDescriptor.descriptorSet[0];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &imageInfo[1];
+
+		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2].dstSet = IBLDescriptor.descriptorSet[0];
+		descriptorWrites[2].dstBinding = 2;
+		descriptorWrites[2].dstArrayElement = 0;
+		descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[2].descriptorCount = 1;
+		descriptorWrites[2].pImageInfo = &imageInfo[2];
+
+		vkUpdateDescriptorSets(vulkanRenderer->device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
+	}
+
 	void VulkanRenderSceneData::createUniformDescriptorSet()
 	{
 		VkDescriptorSetLayoutBinding uboLayoutBinding[3] = {};
@@ -531,6 +673,11 @@ namespace VulkanEngine
 
 		mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
 
+		if (oneLevel)
+		{
+			mipLevels = 1;
+		}
+
 		VkDeviceSize imageSize = texWidth * texHeight * 4;
 
 		if (!pixels)
@@ -543,6 +690,33 @@ namespace VulkanEngine
 		sampler = vulkanRender->getOrCreateMipmapSampler(mipLevels);
 
 		stbi_image_free(pixels);
+	}
+
+	void CubeMap::createCubeMap(VulkanRenderer* vulkanRender)
+	{
+		// https://matheowis.github.io/HDRI-to-CubeMap/
+
+		int texWidth, texHeight, texChannels;
+
+		// TODO:gamma
+		stbi_hdr_to_ldr_scale(2.2f);
+		void* pixels[6];
+		for (size_t i = 0; i < 6; i++)
+		{
+			pixels[i] = stbi_loadf(fullPaths[i].c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+		}
+		stbi_hdr_to_ldr_scale(1.0f);
+
+		mipLevels = static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1;
+
+		vulkanRender->createCubeMap(cubeImage, cubeImageView, cubeImageMemory, texWidth, texHeight, pixels, mipLevels);
+
+		vulkanRender->createLinearSampler(sampler, mipLevels);
+
+		for (size_t i = 0; i < 6; i++)
+		{
+			stbi_image_free(pixels[i]);
+		}
 	}
 
 	void PBRMaterial::createDescriptorSet(VulkanRenderer* vulkanRender, VulkanRenderSceneData* sceneData)
@@ -787,6 +961,5 @@ namespace VulkanEngine
 
 		return mesh;
 	}
-
 
 }

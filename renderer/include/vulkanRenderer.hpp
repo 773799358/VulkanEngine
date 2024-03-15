@@ -69,9 +69,18 @@ namespace VulkanEngine
             //VkFormat format,      // 默认4通道 rgba32
             uint32_t miplevels);
 
+        void createCubeMap(
+            VkImage& image,
+            VkImageView& imageView,
+            VkDeviceMemory& imageMemory,
+            uint32_t width,
+            uint32_t height,
+            void* pixels[6],
+            uint32_t miplevels);
+
         void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layerCount);
 
-        void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
+        void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels, uint32_t layers);
 
         VkImageView createImageView(
             VkImage& image,
@@ -84,6 +93,7 @@ namespace VulkanEngine
         VkSampler getOrCreateMipmapSampler(uint32_t miplevles);
         VkSampler getOrCreateNearestSampler();
         VkSampler getOrCreateLinearSampler();
+        void createLinearSampler(VkSampler& sampler, uint32_t miplevels);
 
         void createBuffer(
             VkDeviceSize size,

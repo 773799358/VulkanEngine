@@ -83,8 +83,22 @@ namespace VulkanEngine
 		VkDeviceMemory textureImageMemory;
 		uint32_t mipLevels = 1;
 		VkSampler sampler;
+		bool oneLevel = false;
 
 		void createTextureImage(VulkanRenderer* vulkanRender);
+	};
+
+	struct CubeMap
+	{
+		std::array<std::string, 6> paths;
+		std::array<std::string, 6> fullPaths;
+		VkImage cubeImage;
+		VkImageView cubeImageView;
+		VkDeviceMemory cubeImageMemory;
+		uint32_t mipLevels = 1;
+		VkSampler sampler;
+
+		void createCubeMap(VulkanRenderer* vulkanRender);
 	};
 
 	struct PBRMaterial
@@ -156,12 +170,17 @@ namespace VulkanEngine
 
 		VulkanDescriptor uniformDescriptor;
 		VulkanDescriptor PBRMaterialDescriptor;
+		VulkanDescriptor IBLDescriptor;
 
 		Node* rootNode = nullptr;
 		std::vector<Node*> nodes;
 		std::vector<Mesh*> meshes;
 		std::vector<PBRMaterial*> materials;
 		std::vector<Texture*> textures;
+
+		CubeMap* IBLSpecularBox = nullptr;
+		CubeMap* IBLIrradianceBox = nullptr;
+		Texture* brdfLUTTexture = nullptr;
 
 		std::string shaderName;
 		std::string shaderVSFliePath;
@@ -210,6 +229,8 @@ namespace VulkanEngine
 
 		void createUniformBufferData();
 		void createUniformDescriptorSet();
+
+		void createIBLDescriptor();
 
 		void createPBRDescriptorLayout();
 

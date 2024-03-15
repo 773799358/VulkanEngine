@@ -4,13 +4,14 @@
 仅支持windows，因为没有苹果电脑和linux环境，后续会对其他平台进行支持，需要安装vulkan的时候需勾选SDL2（安装包已放入项目，建议勾选全部组件），直接执行build_window.bat即可
 然后选择test为启动项，运行，或者进入目录VulkanEngine\build\Release，双击运行test.exe
 
-#### 这个小玩具暂时还处于非常简陋的阶段，无论是封装，内存的管理（连个ringbuffer都没有），还是各种工具的运用（SPIRV-CROSS）等等，很初级，不过希望能慢慢丰富起来。现阶段主要是锻炼vulkan出错的调试能力
+#### 这个小玩具暂时还处于极度简陋的阶段，无论是封装，内存的管理，还是各种工具的运用（没有使用SPIRV-CROSS）等等，很初级，不过希望能慢慢丰富起来。现阶段主要是锻炼vulkan出错的调试能力（封装越简陋，就越容易出错，刚好锻炼一下调试，把各种常见的验证报错都熟悉一遍，通过报错再去熟悉VulaknAPI）和搭建基本的pass，绘制出来点东西
 
 ### 现有功能：
 1. 前向管线
 2. 非透明物体的直接方向光PBR
 3. 前向管线的MSAA
 4. 方向光阴影、PCF
+5. 延迟管线 + FXAA
 
 ### 未来可能要实现和优化的部分以及建议笔记：
 
@@ -18,13 +19,13 @@
 |  ----    | ----  | ---- |
 | pipeline种类 |||||
 || 前向 | 点光源、~~方向光~~、~~阴影~~、~~MSAA~~、FORWARD+ |
-|| 延迟 | 点光源、方向光、阴影、FXAA |
-|||TAA、延迟后+前向半透明、CSM+VSSM、PBR+IBL、lightmap+probe、SSDO、SSAO、SSR、toneMapping、grad等等后处理|
-| buffer管理||||
+|| 延迟 | 点光源、~~方向光~~、~~阴影~~、~~FXAA~~ |
+|||TAA、延迟后+前向半透明、CSM+VSSM、PBR+IBL、lightmap+probe、SSDO、SSAO、SSR、~~toneMapping~~、grad等等后处理|
+| vulkan资源对象管理||||
 || 接入VMA ||
 || 将position属性与其他属性分开储存，加速顶点着色 ||
-|| 场景数据内存管理，根据更新频率不同，申请不同的大块内存，一次性提交大量数据，用offset来使用实例数据（mesh信息已经用这个方法实现） | ~~对于uniform缓冲使用VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT标记，避免暂存资源的两次复制~~，使用持久化标记，避免频繁进行map/unmap操作。<br>VkPhysicalDeviceLimits::maxDescriptorSetUniformBuffers：可以绑定到一个描述符集的最大uniform缓冲数量。 <br>对于着色器输入，使用uniform缓冲比storage缓冲更好。| 
-|| 对descriptorSet进行编码，构建map，实现复用，同一pass下按照key和pipeline共同决定draw顺序，减少切换|sampler 已经根据mipLevel做key，进行共用|
+|| 场景数据内存管理，根据更新频率不同，申请不同的大块内存，一次性提交大量数据，用offset来使用实例数据（mesh数据已经用这个方法实现，因为是暂时是静态场景，一次上传就不更新了），加入ringbuffer | ~~对于uniform缓冲使用VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT标记，避免暂存资源的两次复制~~，使用持久化标记，避免频繁进行map/unmap操作。<br>VkPhysicalDeviceLimits::maxDescriptorSetUniformBuffers：可以绑定到一个描述符集的最大uniform缓冲数量。 <br>对于着色器输入，使用uniform缓冲比storage缓冲更好。| 
+|| descriptorSetLayout编码为key，同一pass下按照key和pipeline共同决定draw顺序（材质排序），减少切换|sampler 已经根据mipLevel做key，进行共用|
 | pipeline管理 ||||
 || 使用一个pipeline cache创建所有管线对象 | 避免使用衍生管线对象 |
 | descriptorSet管理 ||||
@@ -37,14 +38,14 @@
 || 只使用推送常量(push constants)更新小于128字节的需要高频更新的数据。如果不能保证数据小于128字节，备用一个动态uniform缓冲 ||
 || 使用SPIRV-Cross完成shader反射，自动创建descriptorSet和layout
 | 剔除 ||||
-|| 动态角色多，就用八叉树，否则用BVH ||
+|| 动态角色多，就用八叉树（显然一般引擎都会用八叉树，BVH的重新构建代价有点大），否则用BVH ||
 || 增加遮挡剔除 ||
 | command buffer管理 |
 || 尽量不使用secondary command buffers | 对于部分Vulkan实现，需要在一个render pass中的所有指令存储在一个连续的内存块中，这种情况下，驱动可能会在指令执行前将辅助指令缓冲(secondary command buffers)中的数据复制到主指令缓冲(primary command buffers)中。基于这点，建议尽量使用主指令缓冲(primary command buffers)来避免可能的内存复制。如果需要进行多线程渲染，我们推荐优先考虑并行构建主指令缓冲(primary command buffers)。 |
 | draw ||||
 || 尽量drawInstance，一次绘制大量对象 ||
 | render pass ||||
-|| 尽量使用subpass，对移动端有优化 | 需要在render pass开始时清除附着，应该使用VK_ATTACHMENT_LOAD_OP_CLEAR。<br> 在一个sub pass种清除附着，应该调用vkCmdClearAttachments函数。<br> 在render pass外清除附着，应该调用vkCmdClearColorImage和vkCmdClearDepthStencilImage函数。这种方式最不高效。|
+|| 尽量使用subpass，对移动端有优化 | 需要在render pass开始时清除附着，应该使用VK_ATTACHMENT_LOAD_OP_CLEAR。<br> 在一个sub pass中清除附着，应该调用vkCmdClearAttachments函数。<br> 在render pass外清除附着，应该调用vkCmdClearColorImage和vkCmdClearDepthStencilImage函数。这种方式最不高效。|
     
 
 ## 2024.3.3
@@ -92,15 +93,29 @@
 3. gamma矫正 + toneMapping
 
 ## 2024.3.10
+
 1. disney PBR(效果改善很多，但是需要tangent数据)
 2. 增加 blinn phone
 
 ## 2024.3.11
+
 1. 方向光阴影
 
 ## 2024.3.12
+
 1. shadow PCF
 2. 延迟渲染（一部分）
 
 ## 2024.3.13
-1. 延迟渲染
+
+1. 延迟渲染（light和后处理都使用subpass）
+
+## 2024.3.14
+
+1. 前向管线使用msaa
+2. 延迟管线使用fxaa
+
+## 2024.3.15
+
+1. 天空盒
+2. IBL
