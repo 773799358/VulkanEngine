@@ -78,7 +78,7 @@ namespace VulkanEngine
 	{
 		clear();
 
-		descriptorInfos.resize(1);
+		descriptorInfos.resize(2);
 
 		setupAttachments();
 		setupDescriptorSetLayout();
@@ -302,19 +302,19 @@ namespace VulkanEngine
 			VkSubpassDependency& deferredLightingDependOnGbufferPass = dependencies[1];
 			deferredLightingDependOnGbufferPass.srcSubpass = 0;
 			deferredLightingDependOnGbufferPass.dstSubpass = 1;
-			deferredLightingDependOnGbufferPass.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			deferredLightingDependOnGbufferPass.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			deferredLightingDependOnGbufferPass.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			deferredLightingDependOnGbufferPass.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;				// TODO
+			deferredLightingDependOnGbufferPass.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			deferredLightingDependOnGbufferPass.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			deferredLightingDependOnGbufferPass.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			deferredLightingDependOnGbufferPass.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;				// TODO
 			deferredLightingDependOnGbufferPass.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			VkSubpassDependency& postFXAADependOnDeferrdLighting = dependencies[2];
 			postFXAADependOnDeferrdLighting.srcSubpass = 1;
 			postFXAADependOnDeferrdLighting.dstSubpass = 2;
-			postFXAADependOnDeferrdLighting.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			postFXAADependOnDeferrdLighting.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			postFXAADependOnDeferrdLighting.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			postFXAADependOnDeferrdLighting.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+			postFXAADependOnDeferrdLighting.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			postFXAADependOnDeferrdLighting.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			postFXAADependOnDeferrdLighting.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			postFXAADependOnDeferrdLighting.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			postFXAADependOnDeferrdLighting.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			VkSubpassDependency& presentDependOnLastPass = dependencies[3];

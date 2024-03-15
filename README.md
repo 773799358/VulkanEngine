@@ -4,7 +4,7 @@
 仅支持windows，因为没有苹果电脑和linux环境，后续会对其他平台进行支持，需要安装vulkan的时候需勾选SDL2（安装包已放入项目，建议勾选全部组件），直接执行build_window.bat即可
 然后选择test为启动项，运行，或者进入目录VulkanEngine\build\Release，双击运行test.exe
 
-#### 这个小玩具暂时还处于极度简陋的阶段，无论是封装，内存的管理，还是各种工具的运用（没有使用SPIRV-CROSS）等等，很初级，不过希望能慢慢丰富起来。现阶段主要是锻炼vulkan出错的调试能力（封装越简陋，就越容易出错，刚好锻炼一下调试，把各种常见的验证报错都熟悉一遍，通过报错再去熟悉VulaknAPI）和搭建基本的pass，绘制出来点东西
+#### 这个小玩具暂时还处于极度简陋的阶段，无论是封装，内存的管理，还是各种工具的运用（没有使用SPIRV-CROSS进行shader反射，全部descriptor手动管理）等等，很初级，不过希望能慢慢丰富起来。现阶段主要是锻炼vulkan出错的调试能力（封装越简陋，就越容易出错，刚好锻炼一下调试，把各种常见的验证报错都熟悉一遍，通过报错再去熟悉VulaknAPI）和搭建基本的pass，绘制出来点东西
 
 ### 现有功能：
 1. 前向管线
@@ -12,21 +12,21 @@
 3. 前向管线的MSAA
 4. 方向光阴影、PCF
 5. 延迟管线 + FXAA
-6. DisneyPBR + IBL
+6. DisneyPBR + IBL  整个延迟渲染，除了shadow map和UI，都在一个pass中完成，多个subpass
 
 ### 未来可能要实现和优化的部分以及建议笔记：
-
+~~已完成项~~
 |  分类    | 描述  | 备注 |
 |  ----    | ----  | ---- |
 | pipeline种类 |||||
 || 前向 | 点光源、~~方向光~~、~~阴影~~、~~MSAA~~、FORWARD+ |
 || 延迟 | 点光源、~~方向光~~、~~阴影~~、~~FXAA~~ |
-|||TAA、延迟后+前向半透明、CSM+VSSM、PBR+IBL、lightmap+probe、SSDO、SSAO、SSR、~~toneMapping~~、grad等等后处理|
+|||TAA、延迟后+前向半透明、CSM+VSSM、~~PBR+IBL~~、lightmap+probe、SSDO、SSAO、SSR、~~toneMapping~~、grad等等后处理|
 | vulkan资源对象管理||||
 || 接入VMA ||
 || 将position属性与其他属性分开储存，加速顶点着色 ||
 || 场景数据内存管理，根据更新频率不同，申请不同的大块内存，一次性提交大量数据，用offset来使用实例数据（mesh数据已经用这个方法实现，因为是暂时是静态场景，一次上传就不更新了），加入ringbuffer | ~~对于uniform缓冲使用VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT标记，避免暂存资源的两次复制~~，使用持久化标记，避免频繁进行map/unmap操作。<br>VkPhysicalDeviceLimits::maxDescriptorSetUniformBuffers：可以绑定到一个描述符集的最大uniform缓冲数量。 <br>对于着色器输入，使用uniform缓冲比storage缓冲更好。| 
-|| descriptorSetLayout编码为key，同一pass下按照key和pipeline共同决定draw顺序（材质排序），减少切换|sampler 已经根据mipLevel做key，进行共用|
+|| descriptorSetLayout编码为key，同一pass下按照key和pipeline共同决定draw顺序（材质排序），减少切换|~~sampler 已经根据mipLevel做key，进行共用~~|
 | pipeline管理 ||||
 || 使用一个pipeline cache创建所有管线对象 | 避免使用衍生管线对象 |
 | descriptorSet管理 ||||

@@ -60,8 +60,8 @@ float RGB2LUMA(vec3 color) {
 
 
 #define EDGE_THRESHOLD_MIN  0.0312
-#define EDGE_THRESHOLD_MAX  0.125
-#define SUBPIXEL_QUALITY    0.75
+#define EDGE_THRESHOLD_MAX  0.063
+#define SUBPIXEL_QUALITY    1.0
 #define GRADIENT_SCALE      0.25
 
 void main()
