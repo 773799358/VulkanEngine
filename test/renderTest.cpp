@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     basePath = std::filesystem::path(basePath).parent_path().string();
 
     std::string title = "Vulkan Engine";
-    VulkanEngine::App app(title, 1280, 720);
+    VulkanEngine::App app(title, 2048, 1080);
     app.setBasePath(basePath);
     
     try
@@ -32,8 +32,10 @@ int main(int argc, char* argv[])
     catch (const std::exception& e)
     {
         std::cerr << e.what() << std::endl;
+        //system("pause");
         return EXIT_FAILURE;
     }
-     
+    
+    //system("pause");
     return EXIT_SUCCESS;
 }

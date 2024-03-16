@@ -224,7 +224,7 @@ namespace VulkanEngine
 		std::array<VkAttachmentReference, 1> postPassInputAttachmentReference = {};
 
 		std::array<VkAttachmentReference, 1> lastOutputColorAttachmentReference = {};
-		{
+		//{
 			gbufferAttachmentReference[0].attachment = 0;
 			gbufferAttachmentReference[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			
@@ -324,7 +324,7 @@ namespace VulkanEngine
 			presentDependOnLastPass.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			presentDependOnLastPass.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
 			presentDependOnLastPass.dstAccessMask = 0;
-		}
+		//}
 
 		VkRenderPassCreateInfo renderPassCI = {};
 		renderPassCI.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;

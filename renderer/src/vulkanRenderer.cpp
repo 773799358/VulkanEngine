@@ -106,7 +106,7 @@ namespace VulkanEngine
         viewport = { 0.0f, 0.0f, (float)windowWidth, (float)windowHeight, 0.0f, 1.0f };
         scissor = { {0, 0}, { windowWidth, windowHeight} };
 
-        if (!debug)
+        //if (!debug)
         {
             enableValidationLayers = false;
             enableDebugUtilsLabel = false;
