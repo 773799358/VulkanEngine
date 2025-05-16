@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <functional>
+#include <imgui.h>
 
 namespace VulkanEngine
 {
@@ -108,8 +109,12 @@ namespace VulkanEngine
 
         float frameTimer = (float)diff / 1000.0f;
 
-        sceneData->cameraController.processInputEvent(&vulkanRenderer->windowHandler->getEvent(), frameTimer);
+        const ImGuiIO imio = ImGui::GetIO();
 
+        if (!imio.WantCaptureMouse)
+        {
+            sceneData->cameraController.processInputEvent(&vulkanRenderer->windowHandler->getEvent(), frameTimer);
+        }
         sceneData->updateUniformRenderData();
 
         VkCommandBuffer currentCommandBuffer = vulkanRenderer->getCurrentCommandBuffer();
